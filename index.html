@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>XBHS to Dunkin Route</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <!-- Mapbox GL JS CSS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
+  <style>
+    body { margin: 0; padding: 0; font-family: sans-serif; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+    #instructions {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      max-width: 300px;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    h3 { margin-top: 0; margin-bottom: 8px; font-size: 16px; }
+    p { margin: 4px 0; font-size: 14px; }
+    ol { padding-left: 20px; margin: 8px 0 0 0; font-size: 13px; }
+    li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="instructions">
+  <h3>Route Info</h3>
+  <div id="route-details">Calculating route...</div>
+</div>
+
+<!-- Mapbox GL JS -->
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"></script>
+<script>
+  const accessToken = 'pk.eyJ1IjoibWFkZG94bCIsImEiOiJjbXU3OG1vbWgwanBwMnpwdDVwaGtndTRqIn0.xreTdZS3Gu9ThwR2brfAFw';
+  mapboxgl.accessToken = accessToken;
+
+  // Coordinate 1: XBHS (800 Clapboardtree St) [lng, lat]
+  const origin = [-71.2185, 42.2033];
+  
+  // Coordinate 2: Dunkin' (915 High St, near corner of Clapboardtree St) [lng, lat]
+  const destination = [-71.2330, 42.2132];
+
+  // Initialize Map
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v12',
+    center: [-71.225, 42.208],
+    zoom: 14
+  });
+
+  // Add markers for Origin and Destination
+  new mapboxgl.Marker({ color: '#00704A' }) // Green pin for XBHS
+    .setLngLat(origin)
+    .setPopup(new mapboxgl.Popup().setHTML('<b>Xaverian Brothers High School</b>'))
+    .addTo(map);
+
+  new mapboxgl.Marker({ color: '#FF6600' }) // Orange pin for Dunkin'
+    .setLngLat(destination)
+    .setPopup(new mapboxgl.Popup().setHTML("<b>Dunkin'</b>"))
+    .addTo(map);
+
+  // Function to fetch route from Mapbox Directions API
+  async function getRoute() {
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${origin[0]},${origin[1]};${destination[0]},${destination[1]}?steps=true&geometries=geojson&access_token=${accessToken}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      const route = data.routes[0];
+
+      // 1. Add route polyline layer to map
+      map.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: route.geometry
+        }
+      });
+
+      map.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#3887be',
+          'line-width': 5,
+          'line-opacity': 0.75
+        }
+      });
+
+      // 2. Display summary and turn-by-turn steps
+      const durationMins = Math.round(route.duration / 60);
+      const distanceMiles = (route.distance / 1609.34).toFixed(2);
+
+      let stepsHtml = `
+        <p><strong>Distance:</strong> ${distanceMiles} miles</p>
+        <p><strong>Drive Time:</strong> ~${durationMins} mins</p>
+        <hr>
+        <strong>Directions:</strong>
+        <ol>
+      `;
+
+      route.legs[0].steps.forEach(step => {
+        stepsHtml += `<li>${step.maneuver.instruction}</li>`;
+      });
+
+      stepsHtml += `</ol>`;
+      document.getElementById('route-details').innerHTML = stepsHtml;
+
+    } catch (error) {
+      console.error('Error fetching route:', error);
+      document.getElementById('route-details').innerText = 'Failed to load route.';
+    }
+  }
+
+  // Load route once map styles are ready
+  map.on('load', getRoute);
+</script>
+
+</body>
+</html>
