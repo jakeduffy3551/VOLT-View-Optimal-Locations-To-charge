@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>XBHS to Dunkin Route</title>
+  <title>VOLT - EV Route & Charger Finder</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <!-- Mapbox GL JS CSS -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
@@ -13,26 +13,38 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      max-width: 300px;
-      max-height: 80vh;
+      max-width: 330px;
+      max-height: 85vh;
       overflow-y: auto;
       background: rgba(255, 255, 255, 0.95);
       padding: 15px;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+      z-index: 10;
     }
-    h3 { margin-top: 0; margin-bottom: 8px; font-size: 16px; }
+    h3 { margin-top: 0; margin-bottom: 8px; font-size: 16px; color: #111; }
     p { margin: 4px 0; font-size: 14px; }
     ol { padding-left: 20px; margin: 8px 0 0 0; font-size: 13px; }
     li { margin-bottom: 6px; }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      color: white;
+    }
+    .badge-start { background-color: #00704A; }
+    .badge-charger { background-color: #0066FF; }
+    .badge-end { background-color: #FF6600; }
   </style>
 </head>
 <body>
 
 <div id="map"></div>
 <div id="instructions">
-  <h3>Route Info</h3>
-  <div id="route-details">Calculating route...</div>
+  <h3>⚡ VOLT Route & Charger</h3>
+  <div id="route-details">Loading route from terminal input...</div>
 </div>
 
 <!-- Mapbox GL JS -->
@@ -41,91 +53,157 @@
   const accessToken = 'pk.eyJ1IjoibWFkZG94bCIsImEiOiJjbXU3OG1vbWgwanBwMnpwdDVwaGtndTRqIn0.xreTdZS3Gu9ThwR2brfAFw';
   mapboxgl.accessToken = accessToken;
 
-  // Coordinate 1: XBHS (800 Clapboardtree St) [lng, lat]
-  const origin = [-71.2185, 42.2033];
-  
-  // Coordinate 2: Dunkin' (915 High St, near corner of Clapboardtree St) [lng, lat]
-  const destination = [-71.2330, 42.2132];
+  let startMarker = null;
+  let endMarker = null;
+  let chargerMarker = null;
+  let lastUpdatedAt = 0;
 
   // Initialize Map
   const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v12',
     center: [-71.225, 42.208],
-    zoom: 14
+    zoom: 12
   });
 
-  // Add markers for Origin and Destination
-  new mapboxgl.Marker({ color: '#00704A' }) // Green pin for XBHS
-    .setLngLat(origin)
-    .setPopup(new mapboxgl.Popup().setHTML('<b>Xaverian Brothers High School</b>'))
-    .addTo(map);
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
 
-  new mapboxgl.Marker({ color: '#FF6600' }) // Orange pin for Dunkin'
-    .setLngLat(destination)
-    .setPopup(new mapboxgl.Popup().setHTML("<b>Dunkin'</b>"))
-    .addTo(map);
-
-  // Function to fetch route from Mapbox Directions API
   async function getRoute() {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${origin[0]},${origin[1]};${destination[0]},${destination[1]}?steps=true&geometries=geojson&access_token=${accessToken}`;
-
     try {
-      const response = await fetch(url);
+      const response = await fetch('/api/route');
+      if (!response.ok) return;
       const data = await response.json();
-      const route = data.routes[0];
 
-      // 1. Add route polyline layer to map
-      map.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: route.geometry
-        }
-      });
+      if (data.status !== 'success') return;
+      if (data.updatedAt && data.updatedAt === lastUpdatedAt) return;
+      lastUpdatedAt = data.updatedAt;
 
-      map.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        },
-        paint: {
-          'line-color': '#3887be',
-          'line-width': 5,
-          'line-opacity': 0.75
-        }
-      });
+      const origin = [data.start.lon, data.start.lat];
+      const destination = [data.end.lon, data.end.lat];
+      const charger = [data.charger.lon, data.charger.lat];
 
-      // 2. Display summary and turn-by-turn steps
-      const durationMins = Math.round(route.duration / 60);
-      const distanceMiles = (route.distance / 1609.34).toFixed(2);
+      // Remove previous markers
+      if (startMarker) startMarker.remove();
+      if (endMarker) endMarker.remove();
+      if (chargerMarker) chargerMarker.remove();
 
-      let stepsHtml = `
-        <p><strong>Distance:</strong> ${distanceMiles} miles</p>
-        <p><strong>Drive Time:</strong> ~${durationMins} mins</p>
-        <hr>
-        <strong>Directions:</strong>
-        <ol>
+      // Add Start Marker (Green)
+      startMarker = new mapboxgl.Marker({ color: '#00704A' })
+        .setLngLat(origin)
+        .setPopup(new mapboxgl.Popup().setHTML(`<b>🟢 Start:</b> ${escapeHtml(data.start.name)}`))
+        .addTo(map);
+
+      // Add Charger Marker (Blue)
+      const chargerPopupHtml = `
+        <div style="font-family: sans-serif; max-width:220px;">
+          <h4 style="margin:0 0 4px 0; color:#0066FF;">⚡ ${escapeHtml(data.charger.title)}</h4>
+          <p style="margin:2px 0; font-size:12px;"><b>Address:</b> ${escapeHtml(data.charger.address)}</p>
+          <p style="margin:2px 0; font-size:12px;"><b>Operator:</b> ${escapeHtml(data.charger.operator)}</p>
+          <p style="margin:2px 0; font-size:12px;"><b>Plug:</b> ${escapeHtml(data.charger.connType)} (${escapeHtml(data.charger.powerKw)} kW)</p>
+        </div>
       `;
 
-      route.legs[0].steps.forEach(step => {
-        stepsHtml += `<li>${step.maneuver.instruction}</li>`;
-      });
+      chargerMarker = new mapboxgl.Marker({ color: '#0066FF' })
+        .setLngLat(charger)
+        .setPopup(new mapboxgl.Popup().setHTML(chargerPopupHtml))
+        .addTo(map);
 
-      stepsHtml += `</ol>`;
-      document.getElementById('route-details').innerHTML = stepsHtml;
+      // Add End Marker (Orange)
+      endMarker = new mapboxgl.Marker({ color: '#FF6600' })
+        .setLngLat(destination)
+        .setPopup(new mapboxgl.Popup().setHTML(`<b>🏁 Destination:</b> ${escapeHtml(data.end.name)}`))
+        .addTo(map);
 
+      // Fit Bounds
+      const bounds = new mapboxgl.LngLatBounds();
+      bounds.extend(origin);
+      bounds.extend(charger);
+      bounds.extend(destination);
+      map.fitBounds(bounds, { padding: 70, maxZoom: 15 });
+
+      // Mapbox Directions API query passing origin -> charger -> destination
+      const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${origin[0]},${origin[1]};${charger[0]},${charger[1]};${destination[0]},${destination[1]}?steps=true&geometries=geojson&access_token=${accessToken}`;
+
+      const dirResponse = await fetch(directionsUrl);
+      const dirData = await dirResponse.json();
+
+      if (dirData.routes && dirData.routes.length > 0) {
+        const route = dirData.routes[0];
+
+        if (map.getSource('route')) {
+          map.getSource('route').setData({
+            type: 'Feature',
+            geometry: route.geometry
+          });
+        } else {
+          map.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: route.geometry
+            }
+          });
+
+          map.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: {
+              'line-join': 'round',
+              'line-cap': 'round'
+            },
+            paint: {
+              'line-color': '#0066FF',
+              'line-width': 5,
+              'line-opacity': 0.8
+            }
+          });
+        }
+
+        const durationMins = Math.round(route.duration / 60);
+        const distanceMiles = (route.distance / 1609.34).toFixed(2);
+
+        let stepsHtml = `
+          <p><span class="badge badge-start">START</span> <strong>${escapeHtml(data.start.name)}</strong></p>
+          <p><span class="badge badge-charger">CHARGER STOP</span> <strong>${escapeHtml(data.charger.title)}</strong><br/>
+          <small style="color:#555;">${escapeHtml(data.charger.address)}<br/>Operator: ${escapeHtml(data.charger.operator)} | Plug: ${escapeHtml(data.charger.connType)} (${escapeHtml(data.charger.powerKw)} kW)</small></p>
+          <p><span class="badge badge-end">END</span> <strong>${escapeHtml(data.end.name)}</strong></p>
+          <hr style="margin:10px 0; border:0; border-top:1px solid #eee;"/>
+          <p><strong>Total Distance:</strong> ${distanceMiles} miles</p>
+          <p><strong>Est. Drive Time:</strong> ~${durationMins} mins</p>
+          <hr style="margin:10px 0; border:0; border-top:1px solid #eee;"/>
+          <strong>Driving Directions:</strong>
+          <ol style="padding-left:18px; margin:6px 0;">
+        `;
+
+        route.legs.forEach((leg, legIdx) => {
+          const legLabel = legIdx === 0 ? "Leg 1: Start ➔ Charger Stop" : "Leg 2: Charger Stop ➔ Destination";
+          stepsHtml += `<li style="font-weight:bold; list-style:none; margin-left:-18px; margin-top:8px; color:#333;">📍 ${legLabel}</li>`;
+          leg.steps.forEach(step => {
+            stepsHtml += `<li>${step.maneuver.instruction}</li>`;
+          });
+        });
+
+        stepsHtml += `</ol>`;
+        document.getElementById('route-details').innerHTML = stepsHtml;
+      }
     } catch (error) {
-      console.error('Error fetching route:', error);
-      document.getElementById('route-details').innerText = 'Failed to load route.';
+      console.error('Error loading route:', error);
     }
   }
 
-  // Load route once map styles are ready
-  map.on('load', getRoute);
+  map.on('load', () => {
+    getRoute();
+    // Poll every 2.5 seconds for real-time terminal updates
+    setInterval(getRoute, 2500);
+  });
 </script>
 
 </body>
