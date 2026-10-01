@@ -45,7 +45,8 @@ public class API_Charge_Map {
     }
 
     /**
-     * Geocodes start and end locations, finds an EV charging station along the route (near midpoint),
+     * Geocodes start and end locations, finds an EV charging station along the
+     * route (near midpoint),
      * and updates the route JSON for the map UI.
      */
     public static boolean planRouteWithCharger(String startQuery, String endQuery) {
@@ -94,22 +95,24 @@ public class API_Charge_Map {
 
         // Print Summary to Terminal
         System.out.println("\n============================================================");
-        System.out.println("            ⚡ OPTIMAL EV ROUTE SELECTED ⚡                  ");
+        System.out.println("             OPTIMAL EV ROUTE SELECTED                   ");
         System.out.println("============================================================");
-        System.out.println("🟢 Start Point:     " + startQuery);
-        System.out.println("⚡ Charging Station: " + charger.title);
+        System.out.println(" Start Point:     " + startQuery);
+        System.out.println(" Charging Station: " + charger.title);
         System.out.println("   Address:         " + charger.address);
         System.out.println("   Operator:        " + charger.operator);
-        System.out.println("   Plug Type:       " + charger.connType + (charger.powerKw.equals("N/A") ? "" : " (" + charger.powerKw + " kW)"));
+        System.out.println("   Plug Type:       " + charger.connType
+                + (charger.powerKw.equals("N/A") ? "" : " (" + charger.powerKw + " kW)"));
         System.out.println("   Coordinates:     " + charger.lat + ", " + charger.lon);
-        System.out.println("🏁 End Point:       " + endQuery);
+        System.out.println(" End Point:       " + endQuery);
         System.out.println("============================================================");
 
         // Update JSON served to index.html UI
         currentRouteJson = buildRouteJson(startQuery, startCoords[0], startCoords[1],
                 endQuery, endCoords[0], endCoords[1], charger);
 
-        System.out.println("\n🌐 Map updated! Open or refresh http://localhost:" + activePort + " to view route on map.\n");
+        System.out
+                .println("\n Map updated! Open or refresh http://localhost:" + activePort + " to view route on map.\n");
         return true;
     }
 
@@ -118,7 +121,8 @@ public class API_Charge_Map {
      * Accepts address strings or raw coordinates like "42.2033, -71.2185".
      */
     public static double[] resolveLocation(String location) {
-        if (location == null || location.trim().isEmpty()) return null;
+        if (location == null || location.trim().isEmpty())
+            return null;
         location = location.trim();
 
         // 1. Check if directly formatted as coordinates
@@ -186,46 +190,69 @@ public class API_Charge_Map {
         String postcode = extract(addressBlock, "\"Postcode\"\\s*:\\s*\"([^\"]+)\"");
 
         StringBuilder addrSb = new StringBuilder();
-        if (!line1.equals("N/A")) addrSb.append(line1);
-        if (!town.equals("N/A")) { if (addrSb.length() > 0) addrSb.append(", "); addrSb.append(town); }
-        if (!state.equals("N/A")) { if (addrSb.length() > 0) addrSb.append(", "); addrSb.append(state); }
-        if (!postcode.equals("N/A")) { if (addrSb.length() > 0) addrSb.append(" "); addrSb.append(postcode); }
+        if (!line1.equals("N/A"))
+            addrSb.append(line1);
+        if (!town.equals("N/A")) {
+            if (addrSb.length() > 0)
+                addrSb.append(", ");
+            addrSb.append(town);
+        }
+        if (!state.equals("N/A")) {
+            if (addrSb.length() > 0)
+                addrSb.append(", ");
+            addrSb.append(state);
+        }
+        if (!postcode.equals("N/A")) {
+            if (addrSb.length() > 0)
+                addrSb.append(" ");
+            addrSb.append(postcode);
+        }
         info.address = addrSb.length() > 0 ? addrSb.toString() : "Address N/A";
 
         String latStr = extract(addressBlock, "\"Latitude\"\\s*:\\s*([0-9.-]+)");
         String lonStr = extract(addressBlock, "\"Longitude\"\\s*:\\s*([0-9.-]+)");
         String distStr = extract(addressBlock, "\"Distance\"\\s*:\\s*([0-9.]+)");
 
-        if (!latStr.equals("N/A")) info.lat = Double.parseDouble(latStr);
-        if (!lonStr.equals("N/A")) info.lon = Double.parseDouble(lonStr);
-        if (!distStr.equals("N/A")) info.distance = Double.parseDouble(distStr);
+        if (!latStr.equals("N/A"))
+            info.lat = Double.parseDouble(latStr);
+        if (!lonStr.equals("N/A"))
+            info.lon = Double.parseDouble(lonStr);
+        if (!distStr.equals("N/A"))
+            info.distance = Double.parseDouble(distStr);
 
         info.operator = extract(operatorBlock, "\"Title\"\\s*:\\s*\"([^\"]+)\"");
         info.connType = extract(connectionBlock, "\"Title\"\\s*:\\s*\"([^\"]+)\"");
         info.powerKw = extract(connectionBlock, "\"PowerKW\"\\s*:\\s*([0-9.]+)");
 
-        if (info.title.equals("N/A")) info.title = "EV Charging Station";
-        if (info.operator.equals("N/A")) info.operator = "Public Network";
-        if (info.connType.equals("N/A")) info.connType = "Standard EV Plug";
+        if (info.title.equals("N/A"))
+            info.title = "EV Charging Station";
+        if (info.operator.equals("N/A"))
+            info.operator = "Public Network";
+        if (info.connType.equals("N/A"))
+            info.connType = "Standard EV Plug";
 
         return info;
     }
 
     /**
-     * Smart geocoder: resolves addresses, places, landmarks, ZIP codes using Nominatim.
+     * Smart geocoder: resolves addresses, places, landmarks, ZIP codes using
+     * Nominatim.
      */
     public static double[] geocodeLocation(String address) {
-        if (address == null) return null;
+        if (address == null)
+            return null;
         address = address.trim();
 
         // Attempt 1: Exact query as entered
         double[] coords = queryNominatim(address);
-        if (coords != null) return coords;
+        if (coords != null)
+            return coords;
 
         // Attempt 2: If 5-digit US ZIP code, append USA
         if (address.matches("^\\d{5}(-\\d{4})?$")) {
             coords = queryNominatim(address + ", USA");
-            if (coords != null) return coords;
+            if (coords != null)
+                return coords;
         }
 
         // Attempt 3: If comma-separated, try reversed order
@@ -234,17 +261,20 @@ public class API_Charge_Map {
             StringBuilder reversed = new StringBuilder();
             for (int i = parts.length - 1; i >= 0; i--) {
                 reversed.append(parts[i].trim());
-                if (i > 0) reversed.append(", ");
+                if (i > 0)
+                    reversed.append(", ");
             }
             coords = queryNominatim(reversed.toString());
-            if (coords != null) return coords;
+            if (coords != null)
+                return coords;
         }
 
         // Attempt 4: Try removing street number
         String withoutNumber = address.replaceAll("^\\d+\\s+", "").replaceAll(",\\s*\\d+\\s+", ", ");
         if (!withoutNumber.equalsIgnoreCase(address)) {
             coords = queryNominatim(withoutNumber);
-            if (coords != null) return coords;
+            if (coords != null)
+                return coords;
         }
 
         // Attempt 5: Fallback to city/town part
@@ -254,7 +284,8 @@ public class API_Charge_Map {
                 String cleanPart = part.trim();
                 if (!cleanPart.matches(".*\\d+.*") && cleanPart.length() >= 3) {
                     coords = queryNominatim(cleanPart);
-                    if (coords != null) return coords;
+                    if (coords != null)
+                        return coords;
                 }
             }
         }
@@ -283,22 +314,26 @@ public class API_Charge_Map {
                 double lon = Double.parseDouble(lonMatcher.group(1));
                 return new double[] { lat, lon };
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return null;
     }
 
     private static String extractNestedObject(String text, String key) {
         Pattern pattern = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\\{");
         Matcher m = pattern.matcher(text);
-        if (!m.find()) return "";
+        if (!m.find())
+            return "";
         int openBrace = m.end() - 1;
         int depth = 0;
         for (int i = openBrace; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (c == '{') depth++;
+            if (c == '{')
+                depth++;
             else if (c == '}') {
                 depth--;
-                if (depth == 0) return text.substring(openBrace + 1, i);
+                if (depth == 0)
+                    return text.substring(openBrace + 1, i);
             }
         }
         return "";
@@ -307,29 +342,33 @@ public class API_Charge_Map {
     private static String extractNestedArray(String text, String key) {
         Pattern pattern = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\\[");
         Matcher m = pattern.matcher(text);
-        if (!m.find()) return "";
+        if (!m.find())
+            return "";
         int openBracket = m.end() - 1;
         int depth = 0;
         for (int i = openBracket; i < text.length(); i++) {
             char c = text.charAt(i);
-            if (c == '[') depth++;
+            if (c == '[')
+                depth++;
             else if (c == ']') {
                 depth--;
-                if (depth == 0) return text.substring(openBracket + 1, i);
+                if (depth == 0)
+                    return text.substring(openBracket + 1, i);
             }
         }
         return "";
     }
 
     private static String extract(String json, String regex) {
-        if (json == null || json.isEmpty()) return "N/A";
+        if (json == null || json.isEmpty())
+            return "N/A";
         Matcher m = Pattern.compile(regex).matcher(json);
         return m.find() ? m.group(1).replace("\\u0022", "\"").replace("\\/", "/") : "N/A";
     }
 
     private static String buildRouteJson(String startName, double startLat, double startLon,
-                                         String endName, double endLat, double endLon,
-                                         ChargerInfo charger) {
+            String endName, double endLat, double endLon,
+            ChargerInfo charger) {
         long updatedAt = System.currentTimeMillis();
         StringBuilder sb = new StringBuilder();
         sb.append("{")
@@ -396,7 +435,8 @@ public class API_Charge_Map {
                 port++;
             }
         }
-        System.err.println("Error: Could not bind HTTP server to any port in range " + preferredPort + "-" + (port - 1));
+        System.err
+                .println("Error: Could not bind HTTP server to any port in range " + preferredPort + "-" + (port - 1));
         return null;
     }
 
@@ -417,20 +457,10 @@ public class API_Charge_Map {
             }
 
             String path = exchange.getRequestURI().getPath();
-            if (path == null || path.equals("/") || path.isEmpty()) {
-                path = "/index.html";
-            }
-            if (path.startsWith("/")) {
-                path = path.substring(1);
-            }
+            byte[] fileBytes = loadStaticFileBytes(path);
 
-            File file = new File(path);
-            if (!file.exists() || file.isDirectory()) {
-                file = new File("index.html");
-            }
-
-            if (!file.exists()) {
-                String error = "404 Not Found: index.html not found in working directory.";
+            if (fileBytes == null) {
+                String error = "404 Not Found: Could not locate file or index.html.";
                 byte[] bytes = error.getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
                 exchange.sendResponseHeaders(404, bytes.length);
@@ -440,14 +470,146 @@ public class API_Charge_Map {
                 return;
             }
 
-            String contentType = getMimeType(file.getName());
-            byte[] fileBytes = Files.readAllBytes(file.toPath());
+            String contentType = getMimeType(path == null || path.equals("/") ? "index.html" : path);
             exchange.getResponseHeaders().set("Content-Type", contentType);
             exchange.sendResponseHeaders(200, fileBytes.length);
             try (OutputStream os = exchange.getResponseBody()) {
                 os.write(fileBytes);
             }
         }
+    }
+
+    private static byte[] loadStaticFileBytes(String requestedPath) {
+        String path = (requestedPath == null || requestedPath.equals("/") || requestedPath.isEmpty())
+                ? "index.html" : requestedPath;
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+
+        // 1. Try relative to current working directory
+        File file = new File(path);
+        if (file.exists() && !file.isDirectory()) {
+            try { return Files.readAllBytes(file.toPath()); } catch (IOException ignored) {}
+        }
+
+        File indexFile = new File("index.html");
+        if (indexFile.exists() && !indexFile.isDirectory()) {
+            try { return Files.readAllBytes(indexFile.toPath()); } catch (IOException ignored) {}
+        }
+
+        // 2. Try relative to compiled class file location / JAR directory
+        try {
+            URI codeSourceUri = API_Charge_Map.class.getProtectionDomain().getCodeSource().getLocation().toURI();
+            File codeSourceFile = new File(codeSourceUri);
+            File baseDir = codeSourceFile.isDirectory() ? codeSourceFile : codeSourceFile.getParentFile();
+
+            File fileNearClass = new File(baseDir, path);
+            if (fileNearClass.exists() && !fileNearClass.isDirectory()) {
+                return Files.readAllBytes(fileNearClass.toPath());
+            }
+
+            File indexNearClass = new File(baseDir, "index.html");
+            if (indexNearClass.exists() && !indexNearClass.isDirectory()) {
+                return Files.readAllBytes(indexNearClass.toPath());
+            }
+        } catch (Exception ignored) {}
+
+        // 3. Try ClassLoader resources
+        try (var is = API_Charge_Map.class.getResourceAsStream("/" + path)) {
+            if (is != null) return is.readAllBytes();
+        } catch (Exception ignored) {}
+
+        try (var is = API_Charge_Map.class.getResourceAsStream("/index.html")) {
+            if (is != null) return is.readAllBytes();
+        } catch (Exception ignored) {}
+
+        // 4. Fallback HTML content so map ALWAYS works regardless of execution working directory
+        if (path.endsWith(".html") || path.endsWith(".htm") || path.equalsIgnoreCase("index.html")) {
+            return getEmbeddedIndexHtml().getBytes(StandardCharsets.UTF_8);
+        }
+
+        return null;
+    }
+
+    private static String getEmbeddedIndexHtml() {
+        return "<!DOCTYPE html>\n" +
+                "<html lang=\"en\">\n" +
+                "<head>\n" +
+                "  <meta charset=\"utf-8\" />\n" +
+                "  <title>VOLT - EV Route & Charger Finder</title>\n" +
+                "  <meta name=\"viewport\" content=\"initial-scale=1,maximum-scale=1,user-scalable=no\" />\n" +
+                "  <link href=\"https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css\" rel=\"stylesheet\" />\n" +
+                "  <style>\n" +
+                "    body { margin: 0; padding: 0; font-family: sans-serif; }\n" +
+                "    #map { position: absolute; top: 0; bottom: 0; width: 100%; }\n" +
+                "    #instructions {\n" +
+                "      position: absolute; top: 10px; left: 10px; max-width: 330px; max-height: 85vh;\n" +
+                "      overflow-y: auto; background: rgba(255, 255, 255, 0.95); padding: 15px;\n" +
+                "      border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.25); z-index: 10;\n" +
+                "    }\n" +
+                "    h3 { margin-top: 0; margin-bottom: 8px; font-size: 16px; color: #111; }\n" +
+                "    p { margin: 4px 0; font-size: 14px; }\n" +
+                "    ol { padding-left: 20px; margin: 8px 0 0 0; font-size: 13px; }\n" +
+                "    li { margin-bottom: 6px; }\n" +
+                "    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; }\n" +
+                "    .badge-start { background-color: #00704A; }\n" +
+                "    .badge-charger { background-color: #0066FF; }\n" +
+                "    .badge-end { background-color: #FF6600; }\n" +
+                "  </style>\n" +
+                "</head>\n" +
+                "<body>\n" +
+                "<div id=\"map\"></div>\n" +
+                "<div id=\"instructions\">\n" +
+                "  <h3>⚡ VOLT Route & Charger</h3>\n" +
+                "  <div id=\"route-details\">Loading route from terminal input...</div>\n" +
+                "</div>\n" +
+                "<script src=\"https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js\"></script>\n" +
+                "<script>\n" +
+                "  const accessToken = 'pk.eyJ1IjoibWFkZG94bCIsImEiOiJjbXU3OG1vbWgwanBwMnpwdDVwaGtndTRqIn0.xreTdZS3Gu9ThwR2brfAFw';\n" +
+                "  mapboxgl.accessToken = accessToken;\n" +
+                "  let startMarker = null, endMarker = null, chargerMarker = null, lastUpdatedAt = 0;\n" +
+                "  const map = new mapboxgl.Map({ container: 'map', style: 'mapbox://styles/mapbox/streets-v12', center: [-71.225, 42.208], zoom: 12 });\n" +
+                "  function escapeHtml(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;') : ''; }\n" +
+                "  async function getRoute() {\n" +
+                "    try {\n" +
+                "      const response = await fetch('/api/route');\n" +
+                "      if (!response.ok) return;\n" +
+                "      const data = await response.json();\n" +
+                "      if (data.status !== 'success' || (data.updatedAt && data.updatedAt === lastUpdatedAt)) return;\n" +
+                "      lastUpdatedAt = data.updatedAt;\n" +
+                "      const origin = [data.start.lon, data.start.lat];\n" +
+                "      const destination = [data.end.lon, data.end.lat];\n" +
+                "      const charger = [data.charger.lon, data.charger.lat];\n" +
+                "      if (startMarker) startMarker.remove();\n" +
+                "      if (endMarker) endMarker.remove();\n" +
+                "      if (chargerMarker) chargerMarker.remove();\n" +
+                "      startMarker = new mapboxgl.Marker({ color: '#00704A' }).setLngLat(origin).setPopup(new mapboxgl.Popup().setHTML(`<b>🟢 Start:</b> ${escapeHtml(data.start.name)}`)).addTo(map);\n" +
+                "      const chargerPopupHtml = `<div style=\"font-family: sans-serif; max-width:220px;\"><h4 style=\"margin:0 0 4px 0; color:#0066FF;\">⚡ ${escapeHtml(data.charger.title)}</h4><p style=\"margin:2px 0; font-size:12px;\"><b>Address:</b> ${escapeHtml(data.charger.address)}</p><p style=\"margin:2px 0; font-size:12px;\"><b>Operator:</b> ${escapeHtml(data.charger.operator)}</p><p style=\"margin:2px 0; font-size:12px;\"><b>Plug:</b> ${escapeHtml(data.charger.connType)} (${escapeHtml(data.charger.powerKw)} kW)</p></div>`;\n" +
+                "      chargerMarker = new mapboxgl.Marker({ color: '#0066FF' }).setLngLat(charger).setPopup(new mapboxgl.Popup().setHTML(chargerPopupHtml)).addTo(map);\n" +
+                "      endMarker = new mapboxgl.Marker({ color: '#FF6600' }).setLngLat(destination).setPopup(new mapboxgl.Popup().setHTML(`<b>🏁 Destination:</b> ${escapeHtml(data.end.name)}`)).addTo(map);\n" +
+                "      const bounds = new mapboxgl.LngLatBounds(); bounds.extend(origin); bounds.extend(charger); bounds.extend(destination);\n" +
+                "      map.fitBounds(bounds, { padding: 70, maxZoom: 15 });\n" +
+                "      const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${origin[0]},${origin[1]};${charger[0]},${charger[1]};${destination[0]},${destination[1]}?steps=true&geometries=geojson&access_token=${accessToken}`;\n" +
+                "      const dirResponse = await fetch(directionsUrl); const dirData = await dirResponse.json();\n" +
+                "      if (dirData.routes && dirData.routes.length > 0) {\n" +
+                "        const route = dirData.routes[0];\n" +
+                "        if (map.getSource('route')) { map.getSource('route').setData({ type: 'Feature', geometry: route.geometry }); }\n" +
+                "        else { map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route.geometry } }); map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0066FF', 'line-width': 5, 'line-opacity': 0.8 } }); }\n" +
+                "        const durationMins = Math.round(route.duration / 60); const distanceMiles = (route.distance / 1609.34).toFixed(2);\n" +
+                "        let stepsHtml = `<p><span class=\"badge badge-start\">START</span> <strong>${escapeHtml(data.start.name)}</strong></p><p><span class=\"badge badge-charger\">CHARGER STOP</span> <strong>${escapeHtml(data.charger.title)}</strong><br/><small style=\"color:#555;\">${escapeHtml(data.charger.address)}<br/>Operator: ${escapeHtml(data.charger.operator)} | Plug: ${escapeHtml(data.charger.connType)} (${escapeHtml(data.charger.powerKw)} kW)</small></p><p><span class=\"badge badge-end\">END</span> <strong>${escapeHtml(data.end.name)}</strong></p><hr style=\"margin:10px 0; border:0; border-top:1px solid #eee;\"/><p><strong>Total Distance:</strong> ${distanceMiles} miles</p><p><strong>Est. Drive Time:</strong> ~${durationMins} mins</p><hr style=\"margin:10px 0; border:0; border-top:1px solid #eee;\"/><strong>Driving Directions:</strong><ol style=\"padding-left:18px; margin:6px 0;\">`;\n" +
+                "        route.legs.forEach((leg, legIdx) => {\n" +
+                "          const legLabel = legIdx === 0 ? \"Leg 1: Start ➔ Charger Stop\" : \"Leg 2: Charger Stop ➔ Destination\";\n" +
+                "          stepsHtml += `<li style=\"font-weight:bold; list-style:none; margin-left:-18px; margin-top:8px; color:#333;\">📍 ${legLabel}</li>`;\n" +
+                "          leg.steps.forEach(step => { stepsHtml += `<li>${step.maneuver.instruction}</li>`; });\n" +
+                "        });\n" +
+                "        stepsHtml += `</ol>`; document.getElementById('route-details').innerHTML = stepsHtml;\n" +
+                "      }\n" +
+                "    } catch (error) { console.error('Error loading route:', error); }\n" +
+                "  }\n" +
+                "  map.on('load', () => { getRoute(); setInterval(getRoute, 2500); });\n" +
+                "</script>\n" +
+                "</body>\n" +
+                "</html>";
     }
 
     static class RouteApiHandler implements HttpHandler {
@@ -459,7 +621,8 @@ public class API_Charge_Map {
                 return;
             }
 
-            // Check if query params were passed directly to GET /api/route?start=...&end=...
+            // Check if query params were passed directly to GET
+            // /api/route?start=...&end=...
             Map<String, String> params = parseQueryParams(exchange.getRequestURI());
             String startParam = params.get("start");
             String endParam = params.get("end");
@@ -474,7 +637,10 @@ public class API_Charge_Map {
 
     static class HealthCheckHandler implements HttpHandler {
         private final int port;
-        public HealthCheckHandler(int port) { this.port = port; }
+
+        public HealthCheckHandler(int port) {
+            this.port = port;
+        }
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
@@ -506,7 +672,8 @@ public class API_Charge_Map {
     private static Map<String, String> parseQueryParams(URI uri) {
         Map<String, String> params = new HashMap<>();
         String rawQuery = uri.getRawQuery();
-        if (rawQuery == null || rawQuery.isEmpty()) return params;
+        if (rawQuery == null || rawQuery.isEmpty())
+            return params;
 
         String[] pairs = rawQuery.split("&");
         for (String pair : pairs) {
@@ -524,18 +691,26 @@ public class API_Charge_Map {
     }
 
     private static String getMimeType(String filename) {
-        if (filename.endsWith(".html") || filename.endsWith(".htm")) return "text/html; charset=UTF-8";
-        if (filename.endsWith(".css")) return "text/css; charset=UTF-8";
-        if (filename.endsWith(".js")) return "application/javascript; charset=UTF-8";
-        if (filename.endsWith(".json")) return "application/json; charset=UTF-8";
-        if (filename.endsWith(".png")) return "image/png";
-        if (filename.endsWith(".jpg") || filename.endsWith(".jpeg")) return "image/jpeg";
-        if (filename.endsWith(".svg")) return "image/svg+xml";
+        if (filename.endsWith(".html") || filename.endsWith(".htm"))
+            return "text/html; charset=UTF-8";
+        if (filename.endsWith(".css"))
+            return "text/css; charset=UTF-8";
+        if (filename.endsWith(".js"))
+            return "application/javascript; charset=UTF-8";
+        if (filename.endsWith(".json"))
+            return "application/json; charset=UTF-8";
+        if (filename.endsWith(".png"))
+            return "image/png";
+        if (filename.endsWith(".jpg") || filename.endsWith(".jpeg"))
+            return "image/jpeg";
+        if (filename.endsWith(".svg"))
+            return "image/svg+xml";
         return "application/octet-stream";
     }
 
     private static String escapeJson(String s) {
-        if (s == null) return "";
+        if (s == null)
+            return "";
         return s.replace("\\", "\\\\")
                 .replace("\"", "\\\"")
                 .replace("\b", "\\b")
@@ -563,7 +738,8 @@ public class API_Charge_Map {
             System.out.println("------------------------------------------------------------");
         }
 
-        // If arguments were provided (e.g. java API_Charge_Map "Boston, MA" "Worcester, MA")
+        // If arguments were provided (e.g. java API_Charge_Map "Boston, MA" "Worcester,
+        // MA")
         if (args.length >= 2) {
             String start = args[0];
             String end = args[1];
@@ -584,24 +760,30 @@ public class API_Charge_Map {
         while (true) {
             System.out.println("------------------------------------------------------------");
             System.out.print("📍 Enter START Location: ");
-            if (!scanner.hasNextLine()) break;
+            if (!scanner.hasNextLine())
+                break;
 
             String startInput = scanner.nextLine().trim();
-            if (startInput.equalsIgnoreCase("q") || startInput.equalsIgnoreCase("exit") || startInput.equalsIgnoreCase("quit")) {
+            if (startInput.equalsIgnoreCase("q") || startInput.equalsIgnoreCase("exit")
+                    || startInput.equalsIgnoreCase("quit")) {
                 System.out.println("\nThanks for using VOLT! Goodbye.");
                 break;
             }
-            if (startInput.isEmpty()) continue;
+            if (startInput.isEmpty())
+                continue;
 
             System.out.print("🏁 Enter END Location:   ");
-            if (!scanner.hasNextLine()) break;
+            if (!scanner.hasNextLine())
+                break;
 
             String endInput = scanner.nextLine().trim();
-            if (endInput.equalsIgnoreCase("q") || endInput.equalsIgnoreCase("exit") || endInput.equalsIgnoreCase("quit")) {
+            if (endInput.equalsIgnoreCase("q") || endInput.equalsIgnoreCase("exit")
+                    || endInput.equalsIgnoreCase("quit")) {
                 System.out.println("\nThanks for using VOLT! Goodbye.");
                 break;
             }
-            if (endInput.isEmpty()) continue;
+            if (endInput.isEmpty())
+                continue;
 
             planRouteWithCharger(startInput, endInput);
         }
