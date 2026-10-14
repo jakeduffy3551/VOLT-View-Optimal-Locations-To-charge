@@ -51,22 +51,22 @@ public class API_Charge_Map {
      */
     public static boolean planRouteWithCharger(String startQuery, String endQuery) {
         if (startQuery == null || startQuery.trim().isEmpty() || endQuery == null || endQuery.trim().isEmpty()) {
-            System.out.println("❌ Error: Both Start and End locations must be provided.");
+            System.out.println(" Error: Both Start and End locations must be provided.");
             return false;
         }
 
         System.out.println("\n🔍 Resolving Start Location: \"" + startQuery + "\"...");
         double[] startCoords = resolveLocation(startQuery);
         if (startCoords == null) {
-            System.out.println("❌ Could not locate Start Location: \"" + startQuery + "\". Please check spelling.");
+            System.out.println(" Could not locate Start Location: \"" + startQuery + "\". Please check spelling.");
             return false;
         }
         System.out.printf("  ✔ Start Coordinates: Latitude %.4f, Longitude %.4f%n", startCoords[0], startCoords[1]);
 
-        System.out.println("🔍 Resolving End Location: \"" + endQuery + "\"...");
+        System.out.println(" Resolving End Location: \"" + endQuery + "\"...");
         double[] endCoords = resolveLocation(endQuery);
         if (endCoords == null) {
-            System.out.println("❌ Could not locate End Location: \"" + endQuery + "\". Please check spelling.");
+            System.out.println(" Could not locate End Location: \"" + endQuery + "\". Please check spelling.");
             return false;
         }
         System.out.printf("  ✔ End Coordinates:   Latitude %.4f, Longitude %.4f%n", endCoords[0], endCoords[1]);
@@ -74,13 +74,13 @@ public class API_Charge_Map {
         // Calculate Midpoint along the route
         double midLat = (startCoords[0] + endCoords[0]) / 2.0;
         double midLon = (startCoords[1] + endCoords[1]) / 2.0;
-        System.out.printf("📍 Route Midpoint: Latitude %.4f, Longitude %.4f%n", midLat, midLon);
+        System.out.printf(" Route Midpoint: Latitude %.4f, Longitude %.4f%n", midLat, midLon);
 
-        System.out.println("⚡ Searching Open Charge Map for EV Chargers near route midpoint...");
+        System.out.println(" Searching Open Charge Map for EV Chargers near route midpoint...");
         ChargerInfo charger = findChargerNearPoint(midLat, midLon);
 
         if (charger == null) {
-            System.out.println("  ⚠️ No charger found near midpoint. Searching near start location...");
+            System.out.println(" No charger found near midpoint. Searching near start location...");
             charger = findChargerNearPoint(startCoords[0], startCoords[1]);
         }
 
@@ -481,7 +481,8 @@ public class API_Charge_Map {
 
     private static byte[] loadStaticFileBytes(String requestedPath) {
         String path = (requestedPath == null || requestedPath.equals("/") || requestedPath.isEmpty())
-                ? "index.html" : requestedPath;
+                ? "index.html"
+                : requestedPath;
         if (path.startsWith("/")) {
             path = path.substring(1);
         }
@@ -489,12 +490,18 @@ public class API_Charge_Map {
         // 1. Try relative to current working directory
         File file = new File(path);
         if (file.exists() && !file.isDirectory()) {
-            try { return Files.readAllBytes(file.toPath()); } catch (IOException ignored) {}
+            try {
+                return Files.readAllBytes(file.toPath());
+            } catch (IOException ignored) {
+            }
         }
 
         File indexFile = new File("index.html");
         if (indexFile.exists() && !indexFile.isDirectory()) {
-            try { return Files.readAllBytes(indexFile.toPath()); } catch (IOException ignored) {}
+            try {
+                return Files.readAllBytes(indexFile.toPath());
+            } catch (IOException ignored) {
+            }
         }
 
         // 2. Try relative to compiled class file location / JAR directory
@@ -512,18 +519,24 @@ public class API_Charge_Map {
             if (indexNearClass.exists() && !indexNearClass.isDirectory()) {
                 return Files.readAllBytes(indexNearClass.toPath());
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         // 3. Try ClassLoader resources
         try (var is = API_Charge_Map.class.getResourceAsStream("/" + path)) {
-            if (is != null) return is.readAllBytes();
-        } catch (Exception ignored) {}
+            if (is != null)
+                return is.readAllBytes();
+        } catch (Exception ignored) {
+        }
 
         try (var is = API_Charge_Map.class.getResourceAsStream("/index.html")) {
-            if (is != null) return is.readAllBytes();
-        } catch (Exception ignored) {}
+            if (is != null)
+                return is.readAllBytes();
+        } catch (Exception ignored) {
+        }
 
-        // 4. Fallback HTML content so map ALWAYS works regardless of execution working directory
+        // 4. Fallback HTML content so map ALWAYS works regardless of execution working
+        // directory
         if (path.endsWith(".html") || path.endsWith(".htm") || path.equalsIgnoreCase("index.html")) {
             return getEmbeddedIndexHtml().getBytes(StandardCharsets.UTF_8);
         }
@@ -551,7 +564,8 @@ public class API_Charge_Map {
                 "    p { margin: 4px 0; font-size: 14px; }\n" +
                 "    ol { padding-left: 20px; margin: 8px 0 0 0; font-size: 13px; }\n" +
                 "    li { margin-bottom: 6px; }\n" +
-                "    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; }\n" +
+                "    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; }\n"
+                +
                 "    .badge-start { background-color: #00704A; }\n" +
                 "    .badge-charger { background-color: #0066FF; }\n" +
                 "    .badge-end { background-color: #FF6600; }\n" +
@@ -565,17 +579,21 @@ public class API_Charge_Map {
                 "</div>\n" +
                 "<script src=\"https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js\"></script>\n" +
                 "<script>\n" +
-                "  const accessToken = 'pk.eyJ1IjoibWFkZG94bCIsImEiOiJjbXU3OG1vbWgwanBwMnpwdDVwaGtndTRqIn0.xreTdZS3Gu9ThwR2brfAFw';\n" +
+                "  const accessToken = 'pk.eyJ1IjoibWFkZG94bCIsImEiOiJjbXU3OG1vbWgwanBwMnpwdDVwaGtndTRqIn0.xreTdZS3Gu9ThwR2brfAFw';\n"
+                +
                 "  mapboxgl.accessToken = accessToken;\n" +
                 "  let startMarker = null, endMarker = null, chargerMarker = null, lastUpdatedAt = 0;\n" +
-                "  const map = new mapboxgl.Map({ container: 'map', style: 'mapbox://styles/mapbox/streets-v12', center: [-71.225, 42.208], zoom: 12 });\n" +
-                "  function escapeHtml(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;') : ''; }\n" +
+                "  const map = new mapboxgl.Map({ container: 'map', style: 'mapbox://styles/mapbox/streets-v12', center: [-71.225, 42.208], zoom: 12 });\n"
+                +
+                "  function escapeHtml(str) { return str ? String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;') : ''; }\n"
+                +
                 "  async function getRoute() {\n" +
                 "    try {\n" +
                 "      const response = await fetch('/api/route');\n" +
                 "      if (!response.ok) return;\n" +
                 "      const data = await response.json();\n" +
-                "      if (data.status !== 'success' || (data.updatedAt && data.updatedAt === lastUpdatedAt)) return;\n" +
+                "      if (data.status !== 'success' || (data.updatedAt && data.updatedAt === lastUpdatedAt)) return;\n"
+                +
                 "      lastUpdatedAt = data.updatedAt;\n" +
                 "      const origin = [data.start.lon, data.start.lat];\n" +
                 "      const destination = [data.end.lon, data.end.lat];\n" +
@@ -583,23 +601,35 @@ public class API_Charge_Map {
                 "      if (startMarker) startMarker.remove();\n" +
                 "      if (endMarker) endMarker.remove();\n" +
                 "      if (chargerMarker) chargerMarker.remove();\n" +
-                "      startMarker = new mapboxgl.Marker({ color: '#00704A' }).setLngLat(origin).setPopup(new mapboxgl.Popup().setHTML(`<b>🟢 Start:</b> ${escapeHtml(data.start.name)}`)).addTo(map);\n" +
-                "      const chargerPopupHtml = `<div style=\"font-family: sans-serif; max-width:220px;\"><h4 style=\"margin:0 0 4px 0; color:#0066FF;\">⚡ ${escapeHtml(data.charger.title)}</h4><p style=\"margin:2px 0; font-size:12px;\"><b>Address:</b> ${escapeHtml(data.charger.address)}</p><p style=\"margin:2px 0; font-size:12px;\"><b>Operator:</b> ${escapeHtml(data.charger.operator)}</p><p style=\"margin:2px 0; font-size:12px;\"><b>Plug:</b> ${escapeHtml(data.charger.connType)} (${escapeHtml(data.charger.powerKw)} kW)</p></div>`;\n" +
-                "      chargerMarker = new mapboxgl.Marker({ color: '#0066FF' }).setLngLat(charger).setPopup(new mapboxgl.Popup().setHTML(chargerPopupHtml)).addTo(map);\n" +
-                "      endMarker = new mapboxgl.Marker({ color: '#FF6600' }).setLngLat(destination).setPopup(new mapboxgl.Popup().setHTML(`<b>🏁 Destination:</b> ${escapeHtml(data.end.name)}`)).addTo(map);\n" +
-                "      const bounds = new mapboxgl.LngLatBounds(); bounds.extend(origin); bounds.extend(charger); bounds.extend(destination);\n" +
+                "      startMarker = new mapboxgl.Marker({ color: '#00704A' }).setLngLat(origin).setPopup(new mapboxgl.Popup().setHTML(`<b>🟢 Start:</b> ${escapeHtml(data.start.name)}`)).addTo(map);\n"
+                +
+                "      const chargerPopupHtml = `<div style=\"font-family: sans-serif; max-width:220px;\"><h4 style=\"margin:0 0 4px 0; color:#0066FF;\">⚡ ${escapeHtml(data.charger.title)}</h4><p style=\"margin:2px 0; font-size:12px;\"><b>Address:</b> ${escapeHtml(data.charger.address)}</p><p style=\"margin:2px 0; font-size:12px;\"><b>Operator:</b> ${escapeHtml(data.charger.operator)}</p><p style=\"margin:2px 0; font-size:12px;\"><b>Plug:</b> ${escapeHtml(data.charger.connType)} (${escapeHtml(data.charger.powerKw)} kW)</p></div>`;\n"
+                +
+                "      chargerMarker = new mapboxgl.Marker({ color: '#0066FF' }).setLngLat(charger).setPopup(new mapboxgl.Popup().setHTML(chargerPopupHtml)).addTo(map);\n"
+                +
+                "      endMarker = new mapboxgl.Marker({ color: '#FF6600' }).setLngLat(destination).setPopup(new mapboxgl.Popup().setHTML(`<b>🏁 Destination:</b> ${escapeHtml(data.end.name)}`)).addTo(map);\n"
+                +
+                "      const bounds = new mapboxgl.LngLatBounds(); bounds.extend(origin); bounds.extend(charger); bounds.extend(destination);\n"
+                +
                 "      map.fitBounds(bounds, { padding: 70, maxZoom: 15 });\n" +
-                "      const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${origin[0]},${origin[1]};${charger[0]},${charger[1]};${destination[0]},${destination[1]}?steps=true&geometries=geojson&access_token=${accessToken}`;\n" +
+                "      const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${origin[0]},${origin[1]};${charger[0]},${charger[1]};${destination[0]},${destination[1]}?steps=true&geometries=geojson&access_token=${accessToken}`;\n"
+                +
                 "      const dirResponse = await fetch(directionsUrl); const dirData = await dirResponse.json();\n" +
                 "      if (dirData.routes && dirData.routes.length > 0) {\n" +
                 "        const route = dirData.routes[0];\n" +
-                "        if (map.getSource('route')) { map.getSource('route').setData({ type: 'Feature', geometry: route.geometry }); }\n" +
-                "        else { map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route.geometry } }); map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0066FF', 'line-width': 5, 'line-opacity': 0.8 } }); }\n" +
-                "        const durationMins = Math.round(route.duration / 60); const distanceMiles = (route.distance / 1609.34).toFixed(2);\n" +
-                "        let stepsHtml = `<p><span class=\"badge badge-start\">START</span> <strong>${escapeHtml(data.start.name)}</strong></p><p><span class=\"badge badge-charger\">CHARGER STOP</span> <strong>${escapeHtml(data.charger.title)}</strong><br/><small style=\"color:#555;\">${escapeHtml(data.charger.address)}<br/>Operator: ${escapeHtml(data.charger.operator)} | Plug: ${escapeHtml(data.charger.connType)} (${escapeHtml(data.charger.powerKw)} kW)</small></p><p><span class=\"badge badge-end\">END</span> <strong>${escapeHtml(data.end.name)}</strong></p><hr style=\"margin:10px 0; border:0; border-top:1px solid #eee;\"/><p><strong>Total Distance:</strong> ${distanceMiles} miles</p><p><strong>Est. Drive Time:</strong> ~${durationMins} mins</p><hr style=\"margin:10px 0; border:0; border-top:1px solid #eee;\"/><strong>Driving Directions:</strong><ol style=\"padding-left:18px; margin:6px 0;\">`;\n" +
+                "        if (map.getSource('route')) { map.getSource('route').setData({ type: 'Feature', geometry: route.geometry }); }\n"
+                +
+                "        else { map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: route.geometry } }); map.addLayer({ id: 'route', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#0066FF', 'line-width': 5, 'line-opacity': 0.8 } }); }\n"
+                +
+                "        const durationMins = Math.round(route.duration / 60); const distanceMiles = (route.distance / 1609.34).toFixed(2);\n"
+                +
+                "        let stepsHtml = `<p><span class=\"badge badge-start\">START</span> <strong>${escapeHtml(data.start.name)}</strong></p><p><span class=\"badge badge-charger\">CHARGER STOP</span> <strong>${escapeHtml(data.charger.title)}</strong><br/><small style=\"color:#555;\">${escapeHtml(data.charger.address)}<br/>Operator: ${escapeHtml(data.charger.operator)} | Plug: ${escapeHtml(data.charger.connType)} (${escapeHtml(data.charger.powerKw)} kW)</small></p><p><span class=\"badge badge-end\">END</span> <strong>${escapeHtml(data.end.name)}</strong></p><hr style=\"margin:10px 0; border:0; border-top:1px solid #eee;\"/><p><strong>Total Distance:</strong> ${distanceMiles} miles</p><p><strong>Est. Drive Time:</strong> ~${durationMins} mins</p><hr style=\"margin:10px 0; border:0; border-top:1px solid #eee;\"/><strong>Driving Directions:</strong><ol style=\"padding-left:18px; margin:6px 0;\">`;\n"
+                +
                 "        route.legs.forEach((leg, legIdx) => {\n" +
-                "          const legLabel = legIdx === 0 ? \"Leg 1: Start ➔ Charger Stop\" : \"Leg 2: Charger Stop ➔ Destination\";\n" +
-                "          stepsHtml += `<li style=\"font-weight:bold; list-style:none; margin-left:-18px; margin-top:8px; color:#333;\">📍 ${legLabel}</li>`;\n" +
+                "          const legLabel = legIdx === 0 ? \"Leg 1: Start ➔ Charger Stop\" : \"Leg 2: Charger Stop ➔ Destination\";\n"
+                +
+                "          stepsHtml += `<li style=\"font-weight:bold; list-style:none; margin-left:-18px; margin-top:8px; color:#333;\">📍 ${legLabel}</li>`;\n"
+                +
                 "          leg.steps.forEach(step => { stepsHtml += `<li>${step.maneuver.instruction}</li>`; });\n" +
                 "        });\n" +
                 "        stepsHtml += `</ol>`; document.getElementById('route-details').innerHTML = stepsHtml;\n" +
@@ -721,7 +751,7 @@ public class API_Charge_Map {
     }
 
     // =========================================================================
-    // MAIN ENTRYPOINT (Interactive Terminal Loop + Web Server)
+    // MAIN ENTRYPOINT (Web Server)
     // =========================================================================
 
     public static void main(String[] args) {
@@ -733,13 +763,14 @@ public class API_Charge_Map {
         System.out.println("      ⚡ VOLT - View Optimal Locations To charge ⚡          ");
         System.out.println("============================================================");
         if (server != null) {
-            System.out.println("🌐 Interactive Web Map & API live at: http://localhost:" + port);
-            System.out.println("   Open http://localhost:" + port + " in your browser!");
-            System.out.println("------------------------------------------------------------");
+            System.out.println("🌐 Web App is live at: http://localhost:" + port);
+            System.out.println("   Open index.html or visit http://localhost:" + port + " in your browser.");
+            System.out.println("   All route planning and charger search are now inside the HTML interface!");
+            System.out.println("   (Press Ctrl+C in this terminal to stop the server)");
+            System.out.println("============================================================");
         }
 
-        // If arguments were provided (e.g. java API_Charge_Map "Boston, MA" "Worcester,
-        // MA")
+        // If arguments were provided (e.g. java API_Charge_Map "Boston, MA" "Worcester, MA")
         if (args.length >= 2) {
             String start = args[0];
             String end = args[1];
@@ -749,46 +780,12 @@ public class API_Charge_Map {
             planRouteWithCharger(location, "Dunkin' High St Westwood");
         }
 
-        // Interactive Terminal Loop
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("\nInstructions:");
-        System.out.println("  1. Enter your Start Location (e.g., 'XBHS Dover, MA' or 'Boston, MA')");
-        System.out.println("  2. Enter your End Location (e.g., 'Dunkin Walpole, MA' or 'Worcester, MA')");
-        System.out.println("  3. The app finds an optimal EV charger on your route and updates the map!");
-        System.out.println("  • Type 'q' or 'exit' at any prompt to quit.\n");
-
-        while (true) {
-            System.out.println("------------------------------------------------------------");
-            System.out.print("📍 Enter START Location: ");
-            if (!scanner.hasNextLine())
-                break;
-
-            String startInput = scanner.nextLine().trim();
-            if (startInput.equalsIgnoreCase("q") || startInput.equalsIgnoreCase("exit")
-                    || startInput.equalsIgnoreCase("quit")) {
-                System.out.println("\nThanks for using VOLT! Goodbye.");
-                break;
-            }
-            if (startInput.isEmpty())
-                continue;
-
-            System.out.print("🏁 Enter END Location:   ");
-            if (!scanner.hasNextLine())
-                break;
-
-            String endInput = scanner.nextLine().trim();
-            if (endInput.equalsIgnoreCase("q") || endInput.equalsIgnoreCase("exit")
-                    || endInput.equalsIgnoreCase("quit")) {
-                System.out.println("\nThanks for using VOLT! Goodbye.");
-                break;
-            }
-            if (endInput.isEmpty())
-                continue;
-
-            planRouteWithCharger(startInput, endInput);
+        // Keep server running without demanding terminal inputs
+        try {
+            Thread.currentThread().join();
+        } catch (InterruptedException ignored) {
+        } finally {
+            stopServer();
         }
-
-        scanner.close();
-        stopServer();
     }
 }
