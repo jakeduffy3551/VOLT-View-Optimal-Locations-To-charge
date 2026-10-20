@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VOLT - EV Route & Charger Finder</title>
+  <title>VOLT - EV Long-Distance Route & Optimal Charger Finder</title>
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <!-- Mapbox GL JS CSS -->
   <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet" />
@@ -13,7 +13,7 @@
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: #2d3748;
-      background: #f7fafc;
+      background: #f0f4f8;
     }
     #map {
       position: absolute;
@@ -25,25 +25,36 @@
       position: absolute;
       top: 16px;
       left: 16px;
-      width: 380px;
+      width: 410px;
       max-width: calc(100vw - 32px);
       max-height: calc(100vh - 32px);
       overflow-y: auto;
       background: rgba(255, 255, 255, 0.98);
-      backdrop-filter: blur(8px);
-      padding: 18px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(10px);
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
       z-index: 10;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
+    }
+    .header-box {
+      border-bottom: 1px solid #edf2f7;
+      padding-bottom: 12px;
     }
     .header-title {
       margin: 0;
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 20px;
+      font-weight: 800;
       color: #1a202c;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-title .volt-icon {
+      color: #0066FF;
+      font-size: 22px;
     }
     .header-subtitle {
       margin: 4px 0 0 0;
@@ -71,12 +82,13 @@
       padding: 9px 32px 9px 12px;
       font-size: 13px;
       border: 1px solid #cbd5e0;
-      border-radius: 6px;
+      border-radius: 8px;
       outline: none;
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
       background: #fff;
     }
-    input[type="text"]:focus {
+    input[type="text"]:focus,
+    input[type="number"]:focus {
       border-color: #0066FF;
       box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.15);
     }
@@ -106,7 +118,7 @@
       border: 1px solid #cbd5e0;
       border-radius: 8px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
-      max-height: 220px;
+      max-height: 200px;
       overflow-y: auto;
       z-index: 50;
       display: none;
@@ -140,18 +152,103 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    /* EV Range & Battery Card */
+    .ev-card {
+      background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .ev-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ev-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #2b6cb0;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .battery-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      background: #38a169;
+      color: white;
+      transition: background 0.2s ease;
+    }
+    .battery-pill.warn { background: #dd6b20; }
+    .battery-pill.danger { background: #e53e3e; }
+    .battery-bar-track {
+      width: 100%;
+      height: 7px;
+      background: #cbd5e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .battery-bar-fill {
+      height: 100%;
+      width: 72%;
+      background: #38a169;
+      border-radius: 4px;
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+    .range-inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .range-input-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .range-input-box input[type="number"] {
+      width: 100%;
+      padding: 7px 34px 7px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      outline: none;
+      background: #fff;
+    }
+    .unit-tag {
+      position: absolute;
+      right: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #718096;
+      pointer-events: none;
+    }
+    .field-hint {
+      font-size: 10px;
+      color: #718096;
+      margin-top: 2px;
+    }
+    /* Plan Route Button */
     .btn-plan {
       background: #0066FF;
       color: white;
       border: none;
-      padding: 11px;
-      border-radius: 6px;
+      padding: 12px;
+      border-radius: 8px;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      gap: 8px;
       transition: background 0.15s ease, transform 0.05s ease;
     }
     .btn-plan:hover {
@@ -166,11 +263,11 @@
     }
     #status-msg {
       font-size: 12px;
-      padding: 8px 10px;
+      padding: 8px 12px;
       border-radius: 6px;
       display: none;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
     .status-loading {
       background: #ebf8ff;
@@ -193,67 +290,150 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    /* Results Section */
     #results-card {
       border-top: 1px solid #e2e8f0;
-      padding-top: 10px;
+      padding-top: 14px;
       display: none;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
-    .stat-row {
+    .stats-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, 1fr);
       gap: 8px;
     }
     .stat-box {
       background: #f7fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 8px;
+      border-radius: 8px;
+      padding: 8px 10px;
       text-align: center;
     }
     .stat-label {
-      font-size: 11px;
+      font-size: 10px;
       color: #718096;
       text-transform: uppercase;
+      font-weight: 700;
       letter-spacing: 0.5px;
     }
     .stat-val {
       font-size: 15px;
-      font-weight: 700;
+      font-weight: 800;
       color: #1a202c;
       margin-top: 2px;
     }
-    .charger-summary {
-      background: #ebf8ff;
-      border: 1px solid #bee3f8;
+    /* Direct Drive Banner */
+    .direct-drive-banner {
+      background: #f0fff4;
+      border: 1px solid #9ae6b4;
       border-radius: 8px;
-      padding: 10px;
+      padding: 10px 12px;
+      display: none;
     }
-    .charger-title {
+    .direct-drive-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #22543d;
+      margin-bottom: 2px;
+    }
+    .direct-drive-desc {
+      font-size: 11px;
+      color: #276749;
+      line-height: 1.35;
+    }
+    /* Charger Cards */
+    .chargers-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #2d3748;
+    }
+    .chargers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .charger-card {
+      background: #ffffff;
+      border: 1px solid #bee3f8;
+      border-left: 4px solid #0066FF;
+      border-radius: 8px;
+      padding: 10px 12px;
+      box-shadow: 0 2px 6px rgba(0, 102, 255, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .charger-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .charger-card-title {
       font-size: 13px;
       font-weight: 700;
-      color: #2b6cb0;
-      margin: 0 0 4px 0;
-    }
-    .charger-detail {
-      font-size: 11px;
-      color: #4a5568;
-      margin: 2px 0;
+      color: #1a365d;
+      margin: 0;
       line-height: 1.3;
     }
-    .badge {
-      display: inline-block;
+    .power-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
       padding: 2px 6px;
       border-radius: 4px;
       font-size: 10px;
       font-weight: 700;
-      color: white;
+      white-space: nowrap;
+      background: #ebf8ff;
+      color: #2b6cb0;
+      border: 1px solid #bee3f8;
     }
-    .badge-charger { background-color: #0066FF; }
+    .power-badge.dc-fast {
+      background: #553c9a;
+      color: white;
+      border: none;
+    }
+    .power-badge.fast {
+      background: #0066FF;
+      color: white;
+      border: none;
+    }
+    .charger-meta {
+      font-size: 11px;
+      color: #4a5568;
+      line-height: 1.35;
+    }
+    .charger-timing {
+      font-size: 11px;
+      font-weight: 600;
+      color: #2c5282;
+      background: #ebf8ff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2px;
+    }
+    .btn-focus-stop {
+      background: none;
+      border: none;
+      color: #0066FF;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+    /* Directions Section */
     .directions-toggle {
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 700;
       color: #0066FF;
       cursor: pointer;
       display: flex;
@@ -261,9 +441,11 @@
       align-items: center;
       padding: 6px 0;
       user-select: none;
+      border-top: 1px solid #edf2f7;
+      margin-top: 4px;
     }
     #directions-list {
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
       font-size: 12px;
       padding-left: 18px;
@@ -277,13 +459,37 @@
     .leg-header {
       list-style: none;
       font-weight: 700;
-      color: #2d3748;
+      color: #1a202c;
       margin-left: -18px;
       margin-top: 8px;
       margin-bottom: 4px;
       background: #edf2f7;
-      padding: 4px 8px;
+      padding: 5px 8px;
       border-radius: 4px;
+      font-size: 11px;
+    }
+    /* Map Marker styling */
+    .custom-charger-marker {
+      background: #0066FF;
+      color: white;
+      border: 2px solid white;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .custom-charger-marker:hover {
+      transform: scale(1.2);
+    }
+    .custom-charger-marker.dc-fast {
+      background: #6b46c1;
     }
   </style>
 </head>
@@ -292,16 +498,16 @@
 <div id="map"></div>
 
 <div id="sidebar">
-  <div>
-    <h1 class="header-title">VOLT Charger Finder</h1>
-    <p class="header-subtitle">Find optimal EV charging stations along your route</p>
+  <div class="header-box">
+    <h1 class="header-title">VOLT Route &amp; Charger</h1>
+    <p class="header-subtitle">Intelligent multi-stop EV route planner for short &amp; long drives</p>
   </div>
 
   <form id="route-form" onsubmit="handlePlanRoute(event)">
     <div class="form-group">
       <label for="start-input">Start Location</label>
       <div class="input-wrapper">
-        <input type="text" id="start-input" placeholder="Address, business, landmark, or coordinates" value="" autocomplete="off" required />
+        <input type="text" id="start-input" placeholder="Address, city, landmark, or coordinates" value="" autocomplete="off" required />
         <button type="button" class="btn-clear" id="start-clear" onclick="clearInput('start-input')" title="Clear">&times;</button>
       </div>
       <div class="autocomplete-dropdown" id="start-dropdown"></div>
@@ -310,14 +516,46 @@
     <div class="form-group" style="margin-top: 8px;">
       <label for="end-input">Destination</label>
       <div class="input-wrapper">
-        <input type="text" id="end-input" placeholder="Address, business, landmark, or coordinates" value="" autocomplete="off" required />
+        <input type="text" id="end-input" placeholder="Address, city, landmark, or coordinates" value="" autocomplete="off" required />
         <button type="button" class="btn-clear" id="end-clear" onclick="clearInput('end-input')" title="Clear">&times;</button>
       </div>
       <div class="autocomplete-dropdown" id="end-dropdown"></div>
     </div>
 
+    <!-- EV Vehicle Range & Battery Settings -->
+    <div class="ev-card" style="margin-top: 10px;">
+      <div class="ev-card-header">
+        <span class="ev-card-title">Vehicle Battery &amp; Range</span>
+        <span id="battery-indicator" class="battery-pill">72% Battery</span>
+      </div>
+
+      <div class="battery-bar-track">
+        <div id="battery-bar-fill" class="battery-bar-fill"></div>
+      </div>
+
+      <div class="range-inputs-grid">
+        <div class="form-group">
+          <label for="total-range-input">Total Car Range</label>
+          <div class="range-input-box">
+            <input type="number" id="total-range-input" min="30" max="600" value="250" step="5" required />
+            <span class="unit-tag">mi</span>
+          </div>
+          <span class="field-hint">Full battery maximum</span>
+        </div>
+
+        <div class="form-group">
+          <label for="current-range-input">Distance Left Now</label>
+          <div class="range-input-box">
+            <input type="number" id="current-range-input" min="5" max="600" value="180" step="5" required />
+            <span class="unit-tag">mi</span>
+          </div>
+          <span class="field-hint">Miles left before empty</span>
+        </div>
+      </div>
+    </div>
+
     <button type="submit" id="submit-btn" class="btn-plan" style="margin-top: 12px; width: 100%;">
-      <span>Find Route &amp; Optimal Charger</span>
+      <span>Find Route &amp; Optimal Chargers</span>
     </button>
   </form>
 
@@ -327,28 +565,41 @@
   </div>
 
   <div id="results-card">
-    <div class="stat-row">
+    <div class="stats-grid">
       <div class="stat-box">
         <div class="stat-label">Total Distance</div>
         <div class="stat-val" id="res-distance">-- mi</div>
       </div>
       <div class="stat-box">
         <div class="stat-label">Drive Time</div>
-        <div class="stat-val" id="res-time">-- min</div>
+        <div class="stat-val" id="res-drive-time">-- min</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Charging Time</div>
+        <div class="stat-val" id="res-charge-time" style="color:#0066FF;">0 min</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Charging Stops</div>
+        <div class="stat-val" id="res-stops-count">0</div>
       </div>
     </div>
 
-    <div class="charger-summary">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-        <span class="badge badge-charger">OPTIMAL CHARGER STOP</span>
-        <span id="res-charger-kw" style="font-size:11px; font-weight:700; color:#2b6cb0;"></span>
-      </div>
-      <h4 class="charger-title" id="res-charger-title">Charging Station</h4>
-      <div class="charger-detail"><b>Address:</b> <span id="res-charger-addr">--</span></div>
-      <div class="charger-detail"><b>Operator:</b> <span id="res-charger-op">--</span></div>
-      <div class="charger-detail"><b>Plug:</b> <span id="res-charger-plug">--</span></div>
+    <!-- Direct Drive Banner (if no charging required) -->
+    <div id="direct-drive-banner" class="direct-drive-banner">
+      <div class="direct-drive-title">Direct Drive (No Charging Required)</div>
+      <div class="direct-drive-desc" id="direct-drive-desc">Your current battery range is sufficient to reach the destination directly without stopping to charge.</div>
     </div>
 
+    <!-- Charging Stops List -->
+    <div id="chargers-section">
+      <div class="chargers-header">
+        <span>Optimal Charging Stops</span>
+        <span id="chargers-count-badge" style="color:#718096; font-size:11px;"></span>
+      </div>
+      <div id="chargers-list" class="chargers-list" style="margin-top: 6px;"></div>
+    </div>
+
+    <!-- Turn-by-turn driving directions -->
     <div>
       <div class="directions-toggle" onclick="toggleDirections()">
         <span>Driving Directions</span>
@@ -367,16 +618,17 @@
 
   let startMarker = null;
   let endMarker = null;
-  let chargerMarker = null;
+  let chargerMarkers = [];
   let showDirections = true;
+  let lastRouteChargers = [];
 
-  // Cache resolved coordinates when selected from autocomplete: { lat, lon, name }
+  // Cache resolved coordinates: { lat, lon, name }
   const resolvedCoordsCache = {
     start: null,
     end: null
   };
 
-  // Initialize Mapbox
+  // Initialize Mapbox map
   const map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v12',
@@ -385,6 +637,47 @@
   });
 
   map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+  // =========================================================================
+  // BATTERY & RANGE CONTROLS
+  // =========================================================================
+
+  const totalRangeInput = document.getElementById('total-range-input');
+  const currentRangeInput = document.getElementById('current-range-input');
+  const batteryIndicator = document.getElementById('battery-indicator');
+  const batteryBarFill = document.getElementById('battery-bar-fill');
+
+  function updateBatteryDisplay() {
+    let total = parseFloat(totalRangeInput.value) || 250;
+    let current = parseFloat(currentRangeInput.value) || 0;
+
+    if (total < 10) total = 10;
+    if (current > total) {
+      current = total;
+      currentRangeInput.value = total;
+    }
+    if (current < 0) current = 0;
+
+    const pct = Math.round((current / total) * 100);
+    batteryIndicator.textContent = `${pct}% Battery`;
+    batteryBarFill.style.width = `${Math.min(100, Math.max(4, pct))}%`;
+
+    batteryIndicator.className = 'battery-pill';
+    if (pct <= 20) {
+      batteryIndicator.classList.add('danger');
+      batteryBarFill.style.background = '#e53e3e';
+    } else if (pct <= 40) {
+      batteryIndicator.classList.add('warn');
+      batteryBarFill.style.background = '#dd6b20';
+    } else {
+      batteryBarFill.style.background = '#38a169';
+    }
+  }
+
+  totalRangeInput.addEventListener('input', updateBatteryDisplay);
+  currentRangeInput.addEventListener('input', updateBatteryDisplay);
+  updateBatteryDisplay();
+
 
   function toggleDirections() {
     showDirections = !showDirections;
@@ -428,7 +721,6 @@
     input.focus();
   }
 
-  // Parse raw coordinate input e.g. "42.2033, -71.2185"
   function parseCoordinates(query) {
     if (!query) return null;
     const match = query.trim().match(/^([-+]?\d+(?:\.\d+)?)[,\s]+([-+]?\d+(?:\.\d+)?)$/);
@@ -443,7 +735,7 @@
   }
 
   // =========================================================================
-  // SMART ADDRESS AUTOCOMPLETE & SUGGESTIONS
+  // AUTOCOMPLETE
   // =========================================================================
 
   function setupAutocomplete(inputId, dropdownId, cacheKey) {
@@ -456,7 +748,7 @@
     input.addEventListener('input', () => {
       const query = input.value.trim();
       clearBtn.style.display = query.length > 0 ? 'block' : 'none';
-      resolvedCoordsCache[cacheKey] = null; // user is typing, reset cached pick
+      resolvedCoordsCache[cacheKey] = null;
 
       clearTimeout(debounceTimer);
       if (query.length < 2) {
@@ -477,14 +769,12 @@
       }
     });
 
-    // Close on click outside
     document.addEventListener('click', (e) => {
       if (!input.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
       }
     });
 
-    // Keyboard navigation (ArrowDown, ArrowUp, Enter, Escape)
     input.addEventListener('keydown', (e) => {
       const items = dropdown.querySelectorAll('.autocomplete-item');
       if (!items || items.length === 0 || dropdown.style.display === 'none') return;
@@ -522,7 +812,6 @@
     const seenNames = new Set();
     const mapCenter = map.getCenter();
 
-    // 1. Query Mapbox Geocoding
     try {
       const mbUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${accessToken}&autocomplete=true&proximity=${mapCenter.lng},${mapCenter.lat}&limit=5`;
       const mbRes = await fetch(mbUrl);
@@ -556,7 +845,6 @@
       console.warn('Mapbox suggestion fetch error:', e);
     }
 
-    // 2. Query Nominatim for schools, landmarks, POIs, businesses
     try {
       const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=4`;
       const nomRes = await fetch(nomUrl, { headers: { 'Accept': 'application/json' } });
@@ -632,25 +920,21 @@
   }
 
   // =========================================================================
-  // SMART RESOLVER / INTERPRETER (Fallbacks, Typos, Zip codes, Reverse order)
+  // SMART ADDRESS RESOLVER
   // =========================================================================
 
   async function resolveAddressSmart(query, cacheKey) {
-    // 1. Check if user already picked from autocomplete
     if (resolvedCoordsCache[cacheKey]) {
       return resolvedCoordsCache[cacheKey];
     }
-
     if (!query) return null;
     const cleanQuery = query.trim();
 
-    // 2. Direct GPS Coordinates
     const rawCoords = parseCoordinates(cleanQuery);
     if (rawCoords) return rawCoords;
 
     const mapCenter = map.getCenter();
 
-    // 3. Nominatim primary query (excellent for schools, landmarks, businesses)
     try {
       const nomUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanQuery)}&format=json&limit=1`;
       const nomRes = await fetch(nomUrl, { headers: { 'Accept': 'application/json' } });
@@ -666,7 +950,6 @@
       }
     } catch (ignored) {}
 
-    // 4. Mapbox Places with proximity
     try {
       const mbUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(cleanQuery)}.json?access_token=${accessToken}&proximity=${mapCenter.lng},${mapCenter.lat}&limit=1`;
       const mbRes = await fetch(mbUrl);
@@ -683,7 +966,6 @@
       }
     } catch (ignored) {}
 
-    // 5. If 5-digit US ZIP Code
     if (/^\d{5}(-\d{4})?$/.test(cleanQuery)) {
       try {
         const zipUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanQuery + ', USA')}&format=json&limit=1`;
@@ -701,7 +983,6 @@
       } catch (ignored) {}
     }
 
-    // 6. Reverse Comma Reversal (e.g. "Westwood, Dunkin" -> "Dunkin, Westwood")
     if (cleanQuery.includes(',')) {
       const reversed = cleanQuery.split(',').map(s => s.trim()).reverse().join(', ');
       try {
@@ -720,152 +1001,363 @@
       } catch (ignored) {}
     }
 
-    // 7. Strip leading street numbers
-    const withoutNum = cleanQuery.replace(/^\d+\s+/, '');
-    if (withoutNum !== cleanQuery && withoutNum.length >= 3) {
-      try {
-        const numUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(withoutNum)}&format=json&limit=1`;
-        const numRes = await fetch(numUrl, { headers: { 'Accept': 'application/json' } });
-        if (numRes.ok) {
-          const data = await numRes.json();
-          if (data && data.length > 0) {
-            return {
-              name: data[0].display_name,
-              lat: parseFloat(data[0].lat),
-              lon: parseFloat(data[0].lon)
-            };
-          }
-        }
-      } catch (ignored) {}
-    }
-
     return null;
   }
 
-  // Searches Open Charge Map API for closest EV charger to coordinates
-  async function findChargerNear(lat, lon) {
-    try {
-      const url = `https://api.openchargemap.org/v3/poi/?latitude=${lat}&longitude=${lon}&maxresults=5&distanceunit=Miles`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const list = await res.json();
-        if (list && list.length > 0) {
-          const item = list[0];
-          const addr = item.AddressInfo || {};
-          const op = item.OperatorInfo || {};
-          const conns = item.Connections || [];
-          const conn = conns[0] || {};
+  // =========================================================================
+  // GEOMETRY & CORRIDOR ROUTE UTILITIES
+  // =========================================================================
 
-          let addrParts = [];
-          if (addr.AddressLine1) addrParts.push(addr.AddressLine1);
-          if (addr.Town) addrParts.push(addr.Town);
-          if (addr.StateOrProvince) addrParts.push(addr.StateOrProvince);
-          if (addr.Postcode) addrParts.push(addr.Postcode);
+  function toRad(deg) { return deg * Math.PI / 180; }
 
-          return {
-            title: addr.Title || 'EV Charging Station',
-            address: addrParts.length > 0 ? addrParts.join(', ') : 'Address Available on Route',
-            operator: op.Title || 'Public Network',
-            connType: conn.ConnectionType?.Title || conn.Title || 'Standard EV Plug',
-            powerKw: conn.PowerKW ? `${conn.PowerKW}` : 'N/A',
-            lat: addr.Latitude || lat,
-            lon: addr.Longitude || lon,
-            distance: addr.Distance ? addr.Distance.toFixed(1) : null
-          };
-        }
+  // Haversine distance in miles
+  function haversineDist(lat1, lon1, lat2, lon2) {
+    const R = 3958.8; // Earth radius in miles
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // Given coordinates [[lon, lat], ...], build cumulative distance table
+  function buildRouteDistanceIndex(coords) {
+    const cumDists = [0];
+    let total = 0;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const seg = haversineDist(coords[i][1], coords[i][0], coords[i + 1][1], coords[i + 1][0]);
+      total += seg;
+      cumDists.push(total);
+    }
+    return { coords, cumDists, totalMiles: total };
+  }
+
+  // Interpolate [lon, lat] along route at target miles
+  function getPointAlongRoute(index, targetMiles) {
+    const { coords, cumDists, totalMiles } = index;
+    if (targetMiles <= 0) return coords[0];
+    if (targetMiles >= totalMiles) return coords[coords.length - 1];
+
+    let i = 0;
+    while (i < cumDists.length - 1 && cumDists[i + 1] < targetMiles) {
+      i++;
+    }
+
+    const segStartDist = cumDists[i];
+    const segEndDist = cumDists[i + 1];
+    const segLen = segEndDist - segStartDist;
+    const t = segLen > 0 ? (targetMiles - segStartDist) / segLen : 0;
+
+    const lon = coords[i][0] + t * (coords[i + 1][0] - coords[i][0]);
+    const lat = coords[i][1] + t * (coords[i + 1][1] - coords[i][1]);
+    return [lon, lat];
+  }
+
+  // Calculate station's progress distance along route and detour distance
+  function projectPointToRoute(index, lat, lon) {
+    const { coords, cumDists } = index;
+    let minDetour = Infinity;
+    let bestDistAlong = 0;
+
+    // Sample segments efficiently
+    const step = coords.length > 500 ? 2 : 1;
+    for (let i = 0; i < coords.length - 1; i += step) {
+      const dStart = haversineDist(lat, lon, coords[i][1], coords[i][0]);
+      if (dStart < minDetour) {
+        minDetour = dStart;
+        bestDistAlong = cumDists[i];
       }
-    } catch (e) {
-      console.warn('Open Charge Map API request error:', e);
     }
-    return null;
+    return { distAlongRoute: bestDistAlong, detourMiles: minDetour };
   }
+
+  // =========================================================================
+  // OPEN CHARGE MAP SMART FETCHER & SCORING
+  // =========================================================================
+
+  async function fetchChargersNear(lat, lon, maxResults = 25) {
+    try {
+      const url = `https://api.openchargemap.org/v3/poi/?latitude=${lat}&longitude=${lon}&maxresults=${maxResults}&distanceunit=Miles`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const list = await res.json();
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      console.warn('OCM fetch error:', e);
+      return [];
+    }
+  }
+
+  function parseStationData(item) {
+    const addr = item.AddressInfo || {};
+    const op = item.OperatorInfo || {};
+    const conns = item.Connections || [];
+    const status = item.StatusType || {};
+    const usage = item.UsageType || {};
+
+    let maxKw = 0;
+    let isFastCharge = false;
+    let connTitles = [];
+
+    conns.forEach(c => {
+      const kw = parseFloat(c.PowerKW) || 0;
+      if (kw > maxKw) maxKw = kw;
+      if (c.Level?.IsFastChargeCapable || kw >= 40) isFastCharge = true;
+      const title = c.ConnectionType?.Title || c.Title;
+      if (title && !connTitles.includes(title)) connTitles.push(title);
+    });
+
+    let addrParts = [];
+    if (addr.AddressLine1) addrParts.push(addr.AddressLine1);
+    if (addr.Town) addrParts.push(addr.Town);
+    if (addr.StateOrProvince) addrParts.push(addr.StateOrProvince);
+
+    return {
+      raw: item,
+      title: addr.Title || 'EV Charging Station',
+      address: addrParts.length > 0 ? addrParts.join(', ') : 'Address Available along Highway',
+      operator: op.Title || 'Public Network',
+      connType: connTitles.length > 0 ? connTitles.join(', ') : 'Standard EV Plug',
+      powerKw: maxKw > 0 ? maxKw : (isFastCharge ? 50 : 7.2),
+      isFastCharge: isFastCharge || maxKw >= 40,
+      lat: addr.Latitude,
+      lon: addr.Longitude,
+      isOperational: status.IsOperational !== false,
+      isPublic: !usage.Title || !usage.Title.toLowerCase().includes('private')
+    };
+  }
+
+  // =========================================================================
+  // INTELLIGENT MULTI-STOP EV ROUTING ALGORITHM
+  // =========================================================================
+
+  async function findBestChargerInCorridor(routeIndex, minProgressDist, maxProgressDist, idealDist) {
+    // 1. Sample target coordinate at ideal depletion point
+    const targetCoord = getPointAlongRoute(routeIndex, idealDist);
+    let candidatesRaw = await fetchChargersNear(targetCoord[1], targetCoord[0], 25);
+
+    // If few results, sample intermediate points along the safe corridor
+    if (candidatesRaw.length < 5) {
+      const altDist = (minProgressDist + idealDist) / 2;
+      const altCoord = getPointAlongRoute(routeIndex, altDist);
+      const extra = await fetchChargersNear(altCoord[1], altCoord[0], 20);
+      candidatesRaw = candidatesRaw.concat(extra);
+    }
+
+    const seenIds = new Set();
+    const scoredList = [];
+
+    candidatesRaw.forEach(item => {
+      if (!item || !item.ID || seenIds.has(item.ID)) return;
+      seenIds.add(item.ID);
+
+      const parsed = parseStationData(item);
+      if (!parsed.isOperational || !parsed.isPublic) return;
+      if (!parsed.lat || !parsed.lon) return;
+
+      const { distAlongRoute, detourMiles } = projectPointToRoute(routeIndex, parsed.lat, parsed.lon);
+
+      // CRITICAL BUG FIX: Ensure station is ahead on route and within safe driving battery limit
+      // Never pick a charger right behind or right next to start when car has range!
+      if (distAlongRoute < minProgressDist) return;
+      if (distAlongRoute > maxProgressDist) return;
+      if (detourMiles > 15) return; // Discard excessive highway detours
+
+      // SCORING: Prioritize DC Fast Charging to save the driver the most time
+      let score = 0;
+
+      // 1. Power Score (50kW - 350kW saves massive travel time)
+      if (parsed.powerKw >= 150) score += 120;
+      else if (parsed.powerKw >= 100) score += 95;
+      else if (parsed.powerKw >= 50) score += 75;
+      else if (parsed.isFastCharge) score += 65;
+      else if (parsed.powerKw >= 20) score += 35;
+      else score += 10; // Slow Level 2 (takes hours)
+
+      // 2. Battery distance progress bonus (rewards safely pushing deeper into the trip)
+      const distFromIdeal = Math.abs(distAlongRoute - idealDist);
+      score += Math.max(0, 50 - distFromIdeal * 2.5);
+
+      // 3. Detour penalty (heavily penalize miles away from the highway)
+      score -= (detourMiles * 5.0);
+
+      // 4. Reliable high-power charging network bonus
+      const opLower = (parsed.operator || '').toLowerCase();
+      if (opLower.includes('tesla') || opLower.includes('electrify') || opLower.includes('evgo') || opLower.includes('chargepoint')) {
+        score += 15;
+      }
+
+      parsed.score = score;
+      parsed.distAlongRoute = distAlongRoute;
+      parsed.detourMiles = detourMiles;
+      scoredList.push(parsed);
+    });
+
+    if (scoredList.length === 0) {
+      // Fallback: create waypoint at ideal highway position
+      return {
+        title: 'Route Highway Charging Station',
+        address: `${targetCoord[1].toFixed(4)}, ${targetCoord[0].toFixed(4)}`,
+        operator: 'Public Fast Charger',
+        connType: 'CCS / NACS / J1772',
+        powerKw: 150,
+        isFastCharge: true,
+        lat: targetCoord[1],
+        lon: targetCoord[0],
+        distAlongRoute: idealDist,
+        detourMiles: 0.1,
+        isFallback: true
+      };
+    }
+
+    // Sort by score descending
+    scoredList.sort((a, b) => b.score - a.score);
+    return scoredList[0];
+  }
+
+  // Calculate multi-stop schedule for long drives
+  async function computeOptimalEVStops(startLoc, endLoc, totalRange, currentRange) {
+    // 1. Fetch initial direct driving route geometry from Mapbox
+    setStatus('Analyzing highway corridor & elevation from Mapbox...');
+    const baseDirUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${startLoc.lon},${startLoc.lat};${endLoc.lon},${endLoc.lat}?overview=full&geometries=geojson&access_token=${accessToken}`;
+    const baseDirRes = await fetch(baseDirUrl);
+    if (!baseDirRes.ok) throw new Error('Could not calculate baseline route');
+    const baseDirData = await baseDirRes.json();
+
+    if (!baseDirData.routes || baseDirData.routes.length === 0) {
+      throw new Error('No driving route found between locations.');
+    }
+
+    const baseRoute = baseDirData.routes[0];
+    const totalDistMiles = baseRoute.distance / 1609.34;
+    const routeIndex = buildRouteDistanceIndex(baseRoute.geometry.coordinates);
+
+    // Safety buffer: keep 15-25 miles in reserve so battery never hits 0%
+    const reserveBuffer = Math.min(25, Math.max(15, totalRange * 0.10));
+
+    // CHECK: Can the vehicle reach destination directly with current remaining battery?
+    if (totalDistMiles <= (currentRange - reserveBuffer)) {
+      return {
+        totalDistMiles,
+        stopsNeeded: 0,
+        chargers: [],
+        baseRoute,
+        isDirectDrive: true,
+        arrivalMiles: Math.round(currentRange - totalDistMiles)
+      };
+    }
+
+    // MULTI-STOP CHARGING LOOP FOR LONGER DRIVES
+    const chosenChargers = [];
+    let currentProgress = 0;
+    let currentAvailableRange = currentRange;
+    let stopIndex = 1;
+
+    setStatus('Calculating optimal multi-stop charging strategy along route...');
+
+    while ((totalDistMiles - currentProgress) > (currentAvailableRange - reserveBuffer) && stopIndex <= 8) {
+      const remainingMiles = totalDistMiles - currentProgress;
+      const safeLegMiles = currentAvailableRange - reserveBuffer;
+
+      // Target stopping when ~80-88% of current safe battery is consumed (avoids stopping prematurely near start)
+      const idealStopDist = currentProgress + Math.min(safeLegMiles * 0.84, remainingMiles - 10);
+      const minProgressDist = currentProgress + Math.max(12, safeLegMiles * 0.45);
+      const maxReachableDist = currentProgress + safeLegMiles;
+
+      setStatus(`Finding optimal high-speed charger for Stop #${stopIndex} (~${Math.round(idealStopDist)} mi along route)...`);
+      const charger = await findBestChargerInCorridor(routeIndex, minProgressDist, maxReachableDist, idealStopDist);
+
+      // Estimate charging duration (fast charging from ~15% back to 80%)
+      const kw = parseFloat(charger.powerKw) || 50;
+      // Typical EV battery capacity ~ totalRange * 0.28 kWh
+      const chargeAddedKwh = (totalRange * 0.65) * 0.28;
+      const chargeMinutes = Math.round(Math.max(12, (chargeAddedKwh / Math.max(25, kw)) * 60) + 4);
+
+      charger.stopNumber = stopIndex;
+      charger.chargeDurationMins = chargeMinutes;
+      charger.legDistance = Math.round(charger.distAlongRoute - currentProgress);
+      chosenChargers.push(charger);
+
+      // Advance route state: vehicle now at charger with battery recharged to 80%
+      currentProgress = charger.distAlongRoute;
+      currentAvailableRange = totalRange * 0.82;
+      stopIndex++;
+    }
+
+    const finalArrivalMiles = Math.round(currentAvailableRange - (totalDistMiles - currentProgress));
+
+    return {
+      totalDistMiles,
+      stopsNeeded: chosenChargers.length,
+      chargers: chosenChargers,
+      baseRoute,
+      isDirectDrive: chosenChargers.length === 0,
+      arrivalMiles: Math.max(0, finalArrivalMiles)
+    };
+  }
+
+  // =========================================================================
+  // MAIN ROUTE PLANNING HANDLER
+  // =========================================================================
 
   async function handlePlanRoute(e) {
     if (e) e.preventDefault();
     const startVal = document.getElementById('start-input').value.trim();
     const endVal = document.getElementById('end-input').value.trim();
+    const totalRange = parseFloat(totalRangeInput.value) || 250;
+    const currentRange = parseFloat(currentRangeInput.value) || 180;
+
     if (!startVal || !endVal) return;
-    await planRoute(startVal, endVal);
+    await planRoute(startVal, endVal, totalRange, currentRange);
   }
 
-  async function planRoute(startQuery, endQuery) {
+  async function planRoute(startQuery, endQuery, totalRange, currentRange) {
     const submitBtn = document.getElementById('submit-btn');
     submitBtn.disabled = true;
     document.getElementById('results-card').style.display = 'none';
-
-    // Hide any open autocomplete dropdowns
     document.getElementById('start-dropdown').style.display = 'none';
     document.getElementById('end-dropdown').style.display = 'none';
 
     try {
-      // 1. Geocode Start
-      setStatus(`Interpreting Start Location: "${startQuery}"...`);
+      // 1. Geocode Start & Destination
+      setStatus(`Locating Start: "${startQuery}"...`);
       const startLoc = await resolveAddressSmart(startQuery, 'start');
       if (!startLoc) {
-        setStatus(`Could not find "${startQuery}". Try selecting an address from the suggestions or checking spelling.`, true);
+        setStatus(`Could not find "${startQuery}". Please check spelling or select from suggestions.`, true);
         submitBtn.disabled = false;
         return;
       }
 
-      // 2. Geocode Destination
-      setStatus(`Interpreting Destination: "${endQuery}"...`);
+      setStatus(`Locating Destination: "${endQuery}"...`);
       const endLoc = await resolveAddressSmart(endQuery, 'end');
       if (!endLoc) {
-        setStatus(`Could not find "${endQuery}". Try selecting an address from the suggestions or checking spelling.`, true);
+        setStatus(`Could not find "${endQuery}". Please check spelling or select from suggestions.`, true);
         submitBtn.disabled = false;
         return;
       }
 
-      // 3. Find EV Charger near route midpoint
-      const midLat = (startLoc.lat + endLoc.lat) / 2.0;
-      const midLon = (startLoc.lon + endLoc.lon) / 2.0;
-      setStatus('Searching Open Charge Map for optimal EV chargers...');
+      // 2. Run Intelligent Multi-Stop Routing Algorithm
+      const evPlan = await computeOptimalEVStops(startLoc, endLoc, totalRange, currentRange);
+      lastRouteChargers = evPlan.chargers;
 
-      let charger = await findChargerNear(midLat, midLon);
-      if (!charger) {
-        charger = await findChargerNear(startLoc.lat, startLoc.lon);
-      }
-      if (!charger) {
-        charger = {
-          title: 'Route Midpoint Waypoint Charger',
-          address: `${midLat.toFixed(4)}, ${midLon.toFixed(4)}`,
-          operator: 'Public EV Network',
-          connType: 'Standard J1772 / CCS',
-          powerKw: '50',
-          lat: midLat,
-          lon: midLon,
-          distance: null
-        };
-      }
-
-      // 4. Update Map Markers
-      const origin = [startLoc.lon, startLoc.lat];
-      const destination = [endLoc.lon, endLoc.lat];
-      const chargerPoint = [charger.lon, charger.lat];
-
+      // 3. Clear existing map markers
       if (startMarker) startMarker.remove();
       if (endMarker) endMarker.remove();
-      if (chargerMarker) chargerMarker.remove();
+      chargerMarkers.forEach(m => m.remove());
+      chargerMarkers = [];
+
+      const origin = [startLoc.lon, startLoc.lat];
+      const destination = [endLoc.lon, endLoc.lat];
+      const bounds = new mapboxgl.LngLatBounds();
+      bounds.extend(origin);
+      bounds.extend(destination);
 
       // Start Marker (Green)
       startMarker = new mapboxgl.Marker({ color: '#00704A' })
         .setLngLat(origin)
-        .setPopup(new mapboxgl.Popup().setHTML(`<b>Start:</b> ${escapeHtml(startLoc.name)}`))
-        .addTo(map);
-
-      // Charger Marker (Blue)
-      const chargerPopupHtml = `
-        <div style="font-family: sans-serif; max-width:230px;">
-          <h4 style="margin:0 0 4px 0; color:#0066FF;">${escapeHtml(charger.title)}</h4>
-          <p style="margin:2px 0; font-size:12px;"><b>Address:</b> ${escapeHtml(charger.address)}</p>
-          <p style="margin:2px 0; font-size:12px;"><b>Operator:</b> ${escapeHtml(charger.operator)}</p>
-          <p style="margin:2px 0; font-size:12px;"><b>Plug:</b> ${escapeHtml(charger.connType)} (${escapeHtml(charger.powerKw)} kW)</p>
-          ${charger.distance ? `<p style="margin:2px 0; font-size:11px; color:#666;">~${charger.distance} mi from midpoint</p>` : ''}
-        </div>
-      `;
-      chargerMarker = new mapboxgl.Marker({ color: '#0066FF' })
-        .setLngLat(chargerPoint)
-        .setPopup(new mapboxgl.Popup().setHTML(chargerPopupHtml))
+        .setPopup(new mapboxgl.Popup().setHTML(`<b>Start:</b> ${escapeHtml(startLoc.name)}<br/><small>Current Battery: ${currentRange} mi</small>`))
         .addTo(map);
 
       // Destination Marker (Orange)
@@ -874,71 +1366,137 @@
         .setPopup(new mapboxgl.Popup().setHTML(`<b>Destination:</b> ${escapeHtml(endLoc.name)}`))
         .addTo(map);
 
-      // Fit map bounds
-      const bounds = new mapboxgl.LngLatBounds();
-      bounds.extend(origin);
-      bounds.extend(chargerPoint);
-      bounds.extend(destination);
+      // Multi-waypoint URL for Mapbox Directions
+      let waypointsCoords = `${origin[0]},${origin[1]}`;
+
+      // Charger Stop Markers & Waypoints
+      evPlan.chargers.forEach((charger, idx) => {
+        const pt = [charger.lon, charger.lat];
+        bounds.extend(pt);
+        waypointsCoords += `;${pt[0]},${pt[1]}`;
+
+        const el = document.createElement('div');
+        el.className = `custom-charger-marker ${charger.powerKw >= 100 ? 'dc-fast' : ''}`;
+        el.innerHTML = `${charger.stopNumber}`;
+        el.title = `${charger.title} (${charger.powerKw} kW)`;
+
+        const popupHtml = `
+          <div style="font-family: sans-serif; max-width:240px;">
+            <div style="font-size:11px; font-weight:700; color:#0066FF; text-transform:uppercase;">CHARGER STOP #${charger.stopNumber}</div>
+            <h4 style="margin:2px 0 4px 0; color:#1a202c; font-size:13px;">${escapeHtml(charger.title)}</h4>
+            <p style="margin:2px 0; font-size:12px;"><b>Power:</b> ${charger.powerKw} kW ${charger.isFastCharge ? '(DC Fast)' : ''}</p>
+            <p style="margin:2px 0; font-size:12px;"><b>Est. Charge Time:</b> ~${charger.chargeDurationMins} min</p>
+            <p style="margin:2px 0; font-size:12px;"><b>Operator:</b> ${escapeHtml(charger.operator)}</p>
+            <p style="margin:2px 0; font-size:11px; color:#555;">${escapeHtml(charger.address)}</p>
+          </div>
+        `;
+
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat(pt)
+          .setPopup(new mapboxgl.Popup().setHTML(popupHtml))
+          .addTo(map);
+
+        chargerMarkers.push(marker);
+      });
+
+      waypointsCoords += `;${destination[0]},${destination[1]}`;
       map.fitBounds(bounds, { padding: 80, maxZoom: 15 });
 
-      // 5. Fetch Driving Directions via Mapbox Directions API
-      setStatus('Calculating route and driving directions...');
-      const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${origin[0]},${origin[1]};${chargerPoint[0]},${chargerPoint[1]};${destination[0]},${destination[1]}?steps=true&geometries=geojson&overview=full&access_token=${accessToken}`;
+      // 4. Fetch Complete Driving Route via Mapbox Directions
+      setStatus('Generating detailed turn-by-turn driving directions...');
+      const multiRouteUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${waypointsCoords}?steps=true&geometries=geojson&overview=full&access_token=${accessToken}`;
+      const multiRouteRes = await fetch(multiRouteUrl);
+      if (!multiRouteRes.ok) throw new Error('Could not fetch final driving directions.');
+      const multiRouteData = await multiRouteRes.json();
 
-      const dirRes = await fetch(directionsUrl);
-      if (!dirRes.ok) throw new Error('Could not compute driving route');
-      const dirData = await dirRes.json();
+      if (multiRouteData.routes && multiRouteData.routes.length > 0) {
+        const finalRoute = multiRouteData.routes[0];
 
-      if (dirData.routes && dirData.routes.length > 0) {
-        const route = dirData.routes[0];
-
-        // Draw Route Polyline
+        // Draw Polyline
         if (map.getSource('route')) {
-          map.getSource('route').setData({
-            type: 'Feature',
-            geometry: route.geometry
-          });
+          map.getSource('route').setData({ type: 'Feature', geometry: finalRoute.geometry });
         } else {
           map.addSource('route', {
             type: 'geojson',
-            data: {
-              type: 'Feature',
-              geometry: route.geometry
-            }
+            data: { type: 'Feature', geometry: finalRoute.geometry }
           });
-
           map.addLayer({
             id: 'route',
             type: 'line',
             source: 'route',
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': '#0066FF',
-              'line-width': 5,
-              'line-opacity': 0.85
-            }
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': '#0066FF', 'line-width': 5, 'line-opacity': 0.85 }
           });
         }
 
-        // Render Summary & Driving Directions in HTML UI
-        const durationMins = Math.round(route.duration / 60);
-        const distanceMiles = (route.distance / 1609.34).toFixed(1);
+        // 5. Update UI Stats & Summaries
+        const totalDriveMins = Math.round(finalRoute.duration / 60);
+        const totalDistanceMiles = (finalRoute.distance / 1609.34).toFixed(1);
+        const totalChargeMins = evPlan.chargers.reduce((sum, c) => sum + c.chargeDurationMins, 0);
 
-        document.getElementById('res-distance').textContent = `${distanceMiles} mi`;
-        document.getElementById('res-time').textContent = `~${durationMins} min`;
-        document.getElementById('res-charger-title').textContent = charger.title;
-        document.getElementById('res-charger-addr').textContent = charger.address;
-        document.getElementById('res-charger-op').textContent = charger.operator;
-        document.getElementById('res-charger-plug').textContent = charger.connType;
-        document.getElementById('res-charger-kw').textContent = charger.powerKw !== 'N/A' ? `${charger.powerKw} kW` : '';
+        document.getElementById('res-distance').textContent = `${totalDistanceMiles} mi`;
+        document.getElementById('res-drive-time').textContent = `~${totalDriveMins} min`;
+        document.getElementById('res-charge-time').textContent = totalChargeMins > 0 ? `~${totalChargeMins} min` : '0 min';
+        document.getElementById('res-stops-count').textContent = evPlan.stopsNeeded === 0 ? '0 (Direct)' : `${evPlan.stopsNeeded} Stop${evPlan.stopsNeeded > 1 ? 's' : ''}`;
 
+        // Direct Drive Banner vs Charging Stops List
+        const directBanner = document.getElementById('direct-drive-banner');
+        const chargersSection = document.getElementById('chargers-section');
+        const chargersList = document.getElementById('chargers-list');
+        const chargersCountBadge = document.getElementById('chargers-count-badge');
+
+        if (evPlan.isDirectDrive) {
+          directBanner.style.display = 'block';
+          document.getElementById('direct-drive-desc').innerHTML = `Your current battery distance (<b>${currentRange} mi</b>) is plenty for this <b>${totalDistanceMiles} mi</b> trip.<br/>Estimated battery remaining at destination: <b>~${evPlan.arrivalMiles} mi</b> (${Math.round((evPlan.arrivalMiles / totalRange) * 100)}%).`;
+          chargersSection.style.display = 'none';
+        } else {
+          directBanner.style.display = 'none';
+          chargersSection.style.display = 'block';
+          chargersCountBadge.textContent = `${evPlan.stopsNeeded} stop${evPlan.stopsNeeded > 1 ? 's' : ''} recommended`;
+
+          let cardsHtml = '';
+          evPlan.chargers.forEach((c, idx) => {
+            const isDc = c.powerKw >= 50;
+            const badgeClass = c.powerKw >= 100 ? 'dc-fast' : (c.powerKw >= 50 ? 'fast' : '');
+            cardsHtml += `
+              <div class="charger-card">
+                <div class="charger-card-top">
+                  <div>
+                    <span style="font-size:10px; font-weight:800; color:#0066FF;">STOP #${c.stopNumber}</span>
+                    <h4 class="charger-card-title">${escapeHtml(c.title)}</h4>
+                  </div>
+                  <span class="power-badge ${badgeClass}">${c.powerKw} kW ${isDc ? 'DC Fast' : 'L2'}</span>
+                </div>
+                <div class="charger-meta"><b>Operator:</b> ${escapeHtml(c.operator)} &bull; ${escapeHtml(c.address)}</div>
+                <div class="charger-meta"><b>Plug:</b> ${escapeHtml(c.connType)}</div>
+                <div class="charger-timing">
+                  <span>~${c.chargeDurationMins} min charge (recharge to 80%)</span>
+                  <button type="button" class="btn-focus-stop" onclick="focusChargerStop(${idx})">View on Map</button>
+                </div>
+              </div>
+            `;
+          });
+          chargersList.innerHTML = cardsHtml;
+        }
+
+        // 6. Detailed Turn-by-Turn Directions by Leg
         let stepsHtml = '';
-        route.legs.forEach((leg, legIdx) => {
-          const legLabel = legIdx === 0 ? "Leg 1: Start to Charger Stop" : "Leg 2: Charger Stop to Destination";
-          stepsHtml += `<li class="leg-header">${legLabel}</li>`;
+        finalRoute.legs.forEach((leg, legIdx) => {
+          let legLabel = '';
+          if (evPlan.isDirectDrive) {
+            legLabel = 'Direct Leg: Start to Destination';
+          } else if (legIdx === 0) {
+            legLabel = `Leg 1: Start to Charger Stop #1 (${escapeHtml(evPlan.chargers[0].title)})`;
+          } else if (legIdx < evPlan.chargers.length) {
+            legLabel = `Leg ${legIdx + 1}: Charger #${legIdx} to Charger #${legIdx + 1} (${escapeHtml(evPlan.chargers[legIdx].title)})`;
+          } else {
+            legLabel = `Final Leg ${legIdx + 1}: Charger #${evPlan.chargers.length} to Destination`;
+          }
+
+          const legDistMi = (leg.distance / 1609.34).toFixed(1);
+          const legTimeMins = Math.round(leg.duration / 60);
+
+          stepsHtml += `<li class="leg-header">${legLabel} <span style="float:right; font-weight:normal; color:#718096;">${legDistMi} mi &bull; ~${legTimeMins}m</span></li>`;
           leg.steps.forEach(step => {
             stepsHtml += `<li>${step.maneuver.instruction}</li>`;
           });
@@ -950,13 +1508,23 @@
       }
     } catch (err) {
       console.error(err);
-      setStatus('An error occurred while calculating the route. Please try again.', true);
+      setStatus(err.message || 'An error occurred while calculating the route. Please try again.', true);
     } finally {
       submitBtn.disabled = false;
     }
   }
 
-  // Initialize Autocomplete listeners
+  function focusChargerStop(idx) {
+    if (lastRouteChargers && lastRouteChargers[idx]) {
+      const c = lastRouteChargers[idx];
+      map.flyTo({ center: [c.lon, c.lat], zoom: 14, essential: true });
+      if (chargerMarkers[idx]) {
+        chargerMarkers[idx].togglePopup();
+      }
+    }
+  }
+
+  // Set up autocomplete
   setupAutocomplete('start-input', 'start-dropdown', 'start');
   setupAutocomplete('end-input', 'end-dropdown', 'end');
 </script>
