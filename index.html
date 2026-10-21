@@ -310,6 +310,34 @@
       padding: 8px 10px;
       text-align: center;
     }
+    .stat-box.full-width {
+      grid-column: span 2;
+    }
+    .charger-price-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      padding: 5px 8px;
+      margin-top: 2px;
+    }
+    .price-rate-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 700;
+      font-size: 11px;
+      color: #166534;
+    }
+    .price-rate-badge.free {
+      color: #15803d;
+    }
+    .price-est-text {
+      color: #14532d;
+      font-size: 11px;
+    }
     .stat-label {
       font-size: 10px;
       color: #718096;
@@ -582,6 +610,10 @@
         <div class="stat-label">Charging Stops</div>
         <div class="stat-val" id="res-stops-count">0</div>
       </div>
+      <div class="stat-box full-width">
+        <div class="stat-label">Est. Total Charging Cost</div>
+        <div class="stat-val" id="res-charge-cost" style="color:#166534;">$0.00</div>
+      </div>
     </div>
 
     <!-- Direct Drive Banner (if no charging required) -->
@@ -615,6 +647,7 @@
 <script>
   const accessToken = 'pk.eyJ1IjoibWFkZG94bCIsImEiOiJjbXU3OG1vbWgwanBwMnpwdDVwaGtndTRqIn0.xreTdZS3Gu9ThwR2brfAFw';
   mapboxgl.accessToken = accessToken;
+  const OCM_API_KEY = '59ded5d1-27cf-467e-b088-4424c36d78db';
 
   let startMarker = null;
   let endMarker = null;
@@ -1079,8 +1112,10 @@
 
   async function fetchChargersNear(lat, lon, maxResults = 25) {
     try {
-      const url = `https://api.openchargemap.org/v3/poi/?latitude=${lat}&longitude=${lon}&maxresults=${maxResults}&distanceunit=Miles`;
-      const res = await fetch(url);
+      const keyParam = OCM_API_KEY ? `&key=${encodeURIComponent(OCM_API_KEY)}` : '';
+      const url = `https://api.openchargemap.org/v3/poi/?latitude=${lat}&longitude=${lon}&maxresults=${maxResults}&distanceunit=Miles${keyParam}`;
+      const headers = OCM_API_KEY ? { 'X-API-Key': OCM_API_KEY } : {};
+      const res = await fetch(url, { headers });
       if (!res.ok) return [];
       const list = await res.json();
       return Array.isArray(list) ? list : [];
@@ -1114,6 +1149,37 @@
     if (addr.Town) addrParts.push(addr.Town);
     if (addr.StateOrProvince) addrParts.push(addr.StateOrProvince);
 
+    // Parse price information
+    let priceRate = '';
+    let isFree = false;
+    const usageCost = (item.UsageCost || '').trim();
+    const usageTitle = (usage.Title || '').toLowerCase();
+    const isPayAtLocation = usage.IsPayAtLocation;
+
+    if (usageCost && !usageCost.toLowerCase().includes('null') && !usageCost.toLowerCase().includes('unknown')) {
+      priceRate = usageCost;
+      if (priceRate.toLowerCase() === 'free' || priceRate.toLowerCase().includes('free of charge') || priceRate.toLowerCase().includes('no cost')) {
+        priceRate = 'Free';
+        isFree = true;
+      }
+    } else if (usageTitle.includes('free') || isPayAtLocation === false) {
+      priceRate = 'Free';
+      isFree = true;
+    } else {
+      // Estimate based on network / operator standard pricing
+      const opTitle = (op.Title || '').toLowerCase();
+      if (opTitle.includes('tesla')) priceRate = '$0.38/kWh';
+      else if (opTitle.includes('electrify')) priceRate = '$0.48/kWh';
+      else if (opTitle.includes('evgo')) priceRate = '$0.45/kWh';
+      else if (opTitle.includes('chargepoint')) priceRate = '$0.35/kWh';
+      else if (opTitle.includes('blink')) priceRate = '$0.45/kWh';
+      else if (opTitle.includes('flo')) priceRate = '$0.35/kWh';
+      else if (opTitle.includes('rivian')) priceRate = '$0.36/kWh';
+      else if (opTitle.includes('shell')) priceRate = '$0.42/kWh';
+      else if (maxKw >= 50 || isFastCharge) priceRate = '$0.42/kWh';
+      else priceRate = '$0.25/kWh';
+    }
+
     return {
       raw: item,
       title: addr.Title || 'EV Charging Station',
@@ -1122,6 +1188,8 @@
       connType: connTitles.length > 0 ? connTitles.join(', ') : 'Standard EV Plug',
       powerKw: maxKw > 0 ? maxKw : (isFastCharge ? 50 : 7.2),
       isFastCharge: isFastCharge || maxKw >= 40,
+      priceRate: priceRate,
+      isFree: isFree,
       lat: addr.Latitude,
       lon: addr.Longitude,
       isOperational: status.IsOperational !== false,
@@ -1204,6 +1272,8 @@
         connType: 'CCS / NACS / J1772',
         powerKw: 150,
         isFastCharge: true,
+        priceRate: '$0.42/kWh',
+        isFree: false,
         lat: targetCoord[1],
         lon: targetCoord[0],
         distAlongRoute: idealDist,
@@ -1243,6 +1313,8 @@
         totalDistMiles,
         stopsNeeded: 0,
         chargers: [],
+        totalEstCost: '$0.00 (Direct)',
+        totalEstCostNum: 0,
         baseRoute,
         isDirectDrive: true,
         arrivalMiles: Math.round(currentRange - totalDistMiles)
@@ -1275,8 +1347,28 @@
       const chargeAddedKwh = (totalRange * 0.65) * 0.28;
       const chargeMinutes = Math.round(Math.max(12, (chargeAddedKwh / Math.max(25, kw)) * 60) + 4);
 
+      // Estimate charging cost for this session
+      let estCost = '$0.00';
+      let estCostNum = 0;
+      if (charger.isFree || (charger.priceRate && charger.priceRate.toLowerCase() === 'free')) {
+        estCost = 'Free ($0.00)';
+        estCostNum = 0;
+      } else {
+        let ratePerKwh = 0.42;
+        const rateMatch = (charger.priceRate || '').match(/([0-9]+(?:\.[0-9]+)?)/);
+        if (rateMatch) {
+          ratePerKwh = parseFloat(rateMatch[1]);
+          if (ratePerKwh > 5) ratePerKwh = ratePerKwh / 100;
+        }
+        estCostNum = chargeAddedKwh * ratePerKwh;
+        estCost = `~$${estCostNum.toFixed(2)}`;
+      }
+
       charger.stopNumber = stopIndex;
       charger.chargeDurationMins = chargeMinutes;
+      charger.chargeAddedKwh = Math.round(chargeAddedKwh * 10) / 10;
+      charger.estCost = estCost;
+      charger.estCostNum = estCostNum;
       charger.legDistance = Math.round(charger.distAlongRoute - currentProgress);
       chosenChargers.push(charger);
 
@@ -1287,11 +1379,14 @@
     }
 
     const finalArrivalMiles = Math.round(currentAvailableRange - (totalDistMiles - currentProgress));
+    const totalEstCostNum = chosenChargers.reduce((sum, c) => sum + (c.estCostNum || 0), 0);
 
     return {
       totalDistMiles,
       stopsNeeded: chosenChargers.length,
       chargers: chosenChargers,
+      totalEstCost: totalEstCostNum > 0 ? `~$${totalEstCostNum.toFixed(2)}` : (chosenChargers.length > 0 ? 'Free' : '$0.00'),
+      totalEstCostNum,
       baseRoute,
       isDirectDrive: chosenChargers.length === 0,
       arrivalMiles: Math.max(0, finalArrivalMiles)
@@ -1385,6 +1480,8 @@
             <div style="font-size:11px; font-weight:700; color:#0066FF; text-transform:uppercase;">CHARGER STOP #${charger.stopNumber}</div>
             <h4 style="margin:2px 0 4px 0; color:#1a202c; font-size:13px;">${escapeHtml(charger.title)}</h4>
             <p style="margin:2px 0; font-size:12px;"><b>Power:</b> ${charger.powerKw} kW ${charger.isFastCharge ? '(DC Fast)' : ''}</p>
+            <p style="margin:2px 0; font-size:12px;"><b>Price / Rate:</b> <span style="color:#166534; font-weight:700;">${escapeHtml(charger.priceRate)}</span></p>
+            <p style="margin:2px 0; font-size:12px;"><b>Est. Session Cost:</b> <b>${escapeHtml(charger.estCost)}</b></p>
             <p style="margin:2px 0; font-size:12px;"><b>Est. Charge Time:</b> ~${charger.chargeDurationMins} min</p>
             <p style="margin:2px 0; font-size:12px;"><b>Operator:</b> ${escapeHtml(charger.operator)}</p>
             <p style="margin:2px 0; font-size:11px; color:#555;">${escapeHtml(charger.address)}</p>
@@ -1438,6 +1535,7 @@
         document.getElementById('res-drive-time').textContent = `~${totalDriveMins} min`;
         document.getElementById('res-charge-time').textContent = totalChargeMins > 0 ? `~${totalChargeMins} min` : '0 min';
         document.getElementById('res-stops-count').textContent = evPlan.stopsNeeded === 0 ? '0 (Direct)' : `${evPlan.stopsNeeded} Stop${evPlan.stopsNeeded > 1 ? 's' : ''}`;
+        document.getElementById('res-charge-cost').textContent = evPlan.isDirectDrive ? '$0.00 (Direct)' : evPlan.totalEstCost;
 
         // Direct Drive Banner vs Charging Stops List
         const directBanner = document.getElementById('direct-drive-banner');
@@ -1469,6 +1567,14 @@
                 </div>
                 <div class="charger-meta"><b>Operator:</b> ${escapeHtml(c.operator)} &bull; ${escapeHtml(c.address)}</div>
                 <div class="charger-meta"><b>Plug:</b> ${escapeHtml(c.connType)}</div>
+                <div class="charger-price-row">
+                  <span class="price-rate-badge ${c.isFree ? 'free' : ''}">
+                    ⚡ Rate: ${escapeHtml(c.priceRate)}
+                  </span>
+                  <span class="price-est-text">
+                    Est. Session: <b>${escapeHtml(c.estCost)}</b> (~${c.chargeAddedKwh || 45} kWh)
+                  </span>
+                </div>
                 <div class="charger-timing">
                   <span>~${c.chargeDurationMins} min charge (recharge to 80%)</span>
                   <button type="button" class="btn-focus-stop" onclick="focusChargerStop(${idx})">View on Map</button>

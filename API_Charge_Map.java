@@ -30,7 +30,7 @@ public class API_Charge_Map {
     private static int activePort = 8080;
 
     // Optional: If you have an Open Charge Map API key, paste it here.
-    private static final String OCM_API_KEY = "";
+    private static final String OCM_API_KEY = "59ded5d1-27cf-467e-b088-4424c36d78db";
 
     // Thread-safe storage for current route data JSON served to index.html UI
     private static volatile String currentRouteJson = buildInitialDefaultRouteJson();
@@ -41,6 +41,9 @@ public class API_Charge_Map {
         public String operator = "Unknown Operator";
         public String connType = "Standard EV Plug";
         public String powerKw = "N/A";
+        public String usageCost = "N/A";
+        public String priceRate = "$0.42/kWh";
+        public String estCost = "$12.50";
         public double lat;
         public double lon;
         public double distance = -1;
@@ -145,6 +148,21 @@ public class API_Charge_Map {
                 try { kw = Double.parseDouble(charger.powerKw); } catch (Exception ignored) {}
                 charger.chargeDurationMins = (int) Math.round(Math.max(15, ((totalRange * 0.65 * 0.28) / Math.max(25, kw)) * 60) + 5);
 
+                double addedKwh = (totalRange * 0.65) * 0.28;
+                if (charger.priceRate.equalsIgnoreCase("free") || charger.priceRate.toLowerCase().contains("free")) {
+                    charger.estCost = "Free ($0.00)";
+                } else {
+                    double rate = 0.42;
+                    Matcher pm = Pattern.compile("([0-9]+\\.?[0-9]*)").matcher(charger.priceRate);
+                    if (pm.find()) {
+                        try {
+                            rate = Double.parseDouble(pm.group(1));
+                            if (rate > 5) rate /= 100.0;
+                        } catch (Exception ignored) {}
+                    }
+                    charger.estCost = String.format("~$%.2f", addedKwh * rate);
+                }
+
                 chargers.add(charger);
                 progress = idealDist;
                 availableRange = totalRange * 0.82;
@@ -168,6 +186,7 @@ public class API_Charge_Map {
             System.out.println("   Address:        " + c.address);
             System.out.println("   Operator:       " + c.operator);
             System.out.println("   Power & Plug:   " + c.powerKw + " kW (" + c.connType + ")");
+            System.out.printf("   Price / Rate:   %s (Est. Session: %s)%n", c.priceRate, c.estCost);
             System.out.printf("   Est. Charge:    ~%d min%n", c.chargeDurationMins);
             System.out.printf("   Coordinates:    %.4f, %.4f%n", c.lat, c.lon);
         }
@@ -219,10 +238,15 @@ public class API_Charge_Map {
                 urlBuilder.append("&key=").append(URLEncoder.encode(OCM_API_KEY, StandardCharsets.UTF_8));
             }
 
-            HttpRequest request = HttpRequest.newBuilder()
+            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(urlBuilder.toString()))
-                    .header("User-Agent", "VOLT-App/1.0")
-                    .build();
+                    .header("User-Agent", "VOLT-App/1.0");
+
+            if (OCM_API_KEY != null && !OCM_API_KEY.isEmpty()) {
+                reqBuilder.header("X-API-Key", OCM_API_KEY);
+            }
+
+            HttpRequest request = reqBuilder.build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             String responseBody = response.body();
@@ -347,6 +371,42 @@ public class API_Charge_Map {
             info.operator = "Public Network";
         if (info.connType.equals("N/A"))
             info.connType = "Standard EV Plug";
+
+        // Extract pricing information from Open Charge Map
+        String usageCost = extract(json, "\"UsageCost\"\\s*:\\s*\"([^\"]+)\"");
+        String usageBlock = extractNestedObject(json, "UsageType");
+        String usageTitle = extract(usageBlock, "\"Title\"\\s*:\\s*\"([^\"]+)\"");
+        String isPayAtLoc = extract(usageBlock, "\"IsPayAtLocation\"\\s*:\\s*([a-zA-Z]+)");
+
+        if (!usageCost.equals("N/A") && !usageCost.trim().isEmpty() && !usageCost.equalsIgnoreCase("null") && !usageCost.equalsIgnoreCase("unknown")) {
+            info.usageCost = usageCost.trim();
+            info.priceRate = usageCost.trim();
+            if (info.priceRate.toLowerCase().contains("free")) {
+                info.priceRate = "Free";
+                info.estCost = "Free ($0.00)";
+            }
+        } else if (usageTitle.toLowerCase().contains("free") || isPayAtLoc.equalsIgnoreCase("false")) {
+            info.usageCost = "Free";
+            info.priceRate = "Free";
+            info.estCost = "Free ($0.00)";
+        } else {
+            // Operator network standard rates
+            String op = info.operator.toLowerCase();
+            if (op.contains("tesla")) info.priceRate = "$0.38/kWh";
+            else if (op.contains("electrify")) info.priceRate = "$0.48/kWh";
+            else if (op.contains("evgo")) info.priceRate = "$0.45/kWh";
+            else if (op.contains("chargepoint")) info.priceRate = "$0.35/kWh";
+            else if (op.contains("blink")) info.priceRate = "$0.45/kWh";
+            else if (op.contains("flo")) info.priceRate = "$0.35/kWh";
+            else if (op.contains("rivian")) info.priceRate = "$0.36/kWh";
+            else if (op.contains("shell")) info.priceRate = "$0.42/kWh";
+            else {
+                double kw = 50.0;
+                try { kw = Double.parseDouble(info.powerKw); } catch (Exception ignored) {}
+                info.priceRate = (kw >= 50) ? "$0.42/kWh" : "$0.25/kWh";
+            }
+            info.usageCost = "Network Standard (~" + info.priceRate + ")";
+        }
 
         return info;
     }
@@ -480,7 +540,10 @@ public class API_Charge_Map {
         if (json == null || json.isEmpty())
             return "N/A";
         Matcher m = Pattern.compile(regex).matcher(json);
-        return m.find() ? m.group(1).replace("\\u0022", "\"").replace("\\/", "/") : "N/A";
+        if (!m.find()) return "N/A";
+        String val = m.group(1).replace("\\u0022", "\"").replace("\\/", "/");
+        val = val.replace("\\u003E", ">").replace("\\u003e", ">").replace("\\u003C", "<").replace("\\u003c", "<");
+        return val;
     }
 
     private static String buildRouteJson(String startName, double startLat, double startLon,
@@ -514,6 +577,8 @@ public class API_Charge_Map {
                 .append("\"operator\":\"").append(escapeJson(primary.operator)).append("\",")
                 .append("\"connType\":\"").append(escapeJson(primary.connType)).append("\",")
                 .append("\"powerKw\":\"").append(escapeJson(primary.powerKw)).append("\",")
+                .append("\"priceRate\":\"").append(escapeJson(primary.priceRate)).append("\",")
+                .append("\"estCost\":\"").append(escapeJson(primary.estCost)).append("\",")
                 .append("\"lat\":").append(primary.lat).append(",")
                 .append("\"lon\":").append(primary.lon)
                 .append("},");
@@ -531,6 +596,8 @@ public class API_Charge_Map {
                         .append("\"operator\":\"").append(escapeJson(c.operator)).append("\",")
                         .append("\"connType\":\"").append(escapeJson(c.connType)).append("\",")
                         .append("\"powerKw\":\"").append(escapeJson(c.powerKw)).append("\",")
+                        .append("\"priceRate\":\"").append(escapeJson(c.priceRate)).append("\",")
+                        .append("\"estCost\":\"").append(escapeJson(c.estCost)).append("\",")
                         .append("\"chargeDurationMins\":").append(c.chargeDurationMins).append(",")
                         .append("\"lat\":").append(c.lat).append(",")
                         .append("\"lon\":").append(c.lon)
@@ -558,12 +625,65 @@ public class API_Charge_Map {
         defaultCharger.operator = "ChargePoint";
         defaultCharger.connType = "J1772";
         defaultCharger.powerKw = "7.2";
+        defaultCharger.priceRate = "$0.35/kWh";
+        defaultCharger.estCost = "~$8.50";
         defaultCharger.lat = 42.2085;
         defaultCharger.lon = -71.2257;
 
         return buildRouteJson("Xaverian Brothers High School", 42.2033, -71.2185,
                 "Dunkin' High St Westwood", 42.2132, -71.2330,
                 defaultCharger);
+    }
+
+    /**
+     * Resolves a location name/address, queries Open Charge Map API with the API key,
+     * extracts charger pricing and charging cost details, and prints a comprehensive report.
+     */
+    public static ChargerInfo getChargerPricingAtLocation(String location) {
+        if (location == null || location.trim().isEmpty()) {
+            System.out.println("Error: Location cannot be empty.");
+            return null;
+        }
+        System.out.println("\n============================================================");
+        System.out.println("   EV CHARGER & PRICING LOOKUP: " + location);
+        System.out.println("============================================================");
+        double[] coords = resolveLocation(location);
+        if (coords == null) {
+            System.out.println("Could not resolve location coordinates for: " + location);
+            return null;
+        }
+        System.out.printf(" Coordinates:    Latitude %.4f, Longitude %.4f%n", coords[0], coords[1]);
+        ChargerInfo charger = findChargerNearPoint(coords[0], coords[1]);
+        if (charger == null) {
+            System.out.println("No charger found near this location.");
+            return null;
+        }
+
+        // Calculate estimated session cost based on typical 45 kWh recharge
+        double defaultChargeKwh = 45.0;
+        if (charger.priceRate.equalsIgnoreCase("free") || charger.priceRate.toLowerCase().contains("free")) {
+            charger.estCost = "Free ($0.00)";
+        } else {
+            double rate = 0.42;
+            Matcher pm = Pattern.compile("([0-9]+\\.?[0-9]*)").matcher(charger.priceRate);
+            if (pm.find()) {
+                try {
+                    rate = Double.parseDouble(pm.group(1));
+                    if (rate > 5) rate /= 100.0;
+                } catch (Exception ignored) {}
+            }
+            charger.estCost = String.format("~$%.2f", defaultChargeKwh * rate);
+        }
+
+        System.out.println(" Station Name:   " + charger.title);
+        System.out.println(" Address:        " + charger.address);
+        System.out.println(" Operator:       " + charger.operator);
+        System.out.println(" Power & Plug:   " + charger.powerKw + " kW (" + charger.connType + ")");
+        System.out.println(" OCM API Cost:   " + charger.usageCost);
+        System.out.println(" Effective Rate: " + charger.priceRate);
+        System.out.printf(" Est. Cost (recharge ~45 kWh): %s%n", charger.estCost);
+        System.out.println("============================================================\n");
+        return charger;
     }
 
     // =========================================================================
