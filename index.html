@@ -971,13 +971,13 @@
 
 <!-- Mobile Sidebar Toggle -->
 <button type="button" id="btn-mobile-sidebar-toggle" onclick="toggleMobileSidebar()">
-  <span id="mobile-toggle-icon">☰</span> <span id="mobile-toggle-text">Route Menu</span>
+  <span id="mobile-toggle-text">Route Menu</span>
 </button>
 
 <!-- Top Driving Turn-by-Turn HUD Banner -->
 <div id="driving-hud">
   <div class="hud-main-row">
-    <div class="hud-maneuver-icon" id="hud-icon">➔</div>
+    <div class="hud-maneuver-icon" id="hud-icon">&rarr;</div>
     <div class="hud-text-box">
       <div class="hud-dist" id="hud-dist">In 400 ft</div>
       <div class="hud-instruction" id="hud-instruction">Proceed along route</div>
@@ -985,7 +985,7 @@
     <button type="button" class="btn-hud-close" onclick="exitDrivingMode()" title="Exit Driving Mode">&times;</button>
   </div>
   <div class="hud-charger-pill" id="hud-charger-pill">
-    <span>⚡</span> <span id="hud-charger-text">Next stop: 18 mi</span>
+    <span style="font-weight:700;">CHARGER</span> <span id="hud-charger-text">Next stop: 18 mi</span>
   </div>
 </div>
 
@@ -998,7 +998,7 @@
   <div class="hud-trip-stats">
     <div class="hud-trip-stat-main" id="hud-trip-remain">-- mi &bull; -- min left</div>
     <div class="hud-trip-stat-sub">
-      <span class="hud-screen-awake-tag" id="hud-screen-awake">🔒 Screen Awake</span> &bull; <span id="hud-battery-remain">Battery safe</span>
+      <span class="hud-screen-awake-tag" id="hud-screen-awake"><span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%; margin-right:4px;"></span>Screen Awake</span> &bull; <span id="hud-battery-remain">Battery safe</span>
     </div>
   </div>
   <div class="hud-actions">
@@ -1008,16 +1008,23 @@
 
 <!-- Floating Recenter Pill -->
 <button type="button" id="btn-recenter-float" class="btn-recenter-float" onclick="recenterOnVehicle()">
-  🎯 Re-center on Car
+  Re-center on Car
 </button>
 
 <!-- Floating Map Controls -->
 <div id="map-quick-controls">
   <button type="button" class="btn-map-control" id="btn-track-me" onclick="toggleTracking()" title="Track My Location (Live GPS)">
-    📍
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <circle cx="12" cy="12" r="8"></circle>
+      <line x1="12" y1="2" x2="12" y2="4"></line>
+      <line x1="12" y1="20" x2="12" y2="22"></line>
+      <line x1="2" y1="12" x2="4" y2="12"></line>
+      <line x1="20" y1="12" x2="22" y2="12"></line>
+    </svg>
   </button>
-  <button type="button" class="btn-map-control" id="btn-camera-view" onclick="toggleCameraMode()" title="Toggle 3D Driving Perspective / 2D North-Up">
-    🧭
+  <button type="button" class="btn-map-control" id="btn-camera-view" onclick="toggleCameraMode()" title="Toggle 3D Driving Perspective / 2D North-Up" style="font-size:12px; font-weight:800;">
+    3D
   </button>
 </div>
 
@@ -1030,7 +1037,7 @@
   </div>
 
   <div id="mobile-notice-banner">
-    <b>💡 Live Phone GPS Tip:</b> Mobile browsers require HTTPS for real-time GPS. If location access is blocked on local Wi-Fi, you can test driving navigation anytime using <b>Simulate Driving</b>!
+    <b>Live Phone GPS Tip:</b> Mobile browsers require HTTPS for real-time GPS. If location access is blocked on local Wi-Fi, you can test driving navigation anytime using <b>Simulate Driving</b>!
   </div>
 
   <form id="route-form" onsubmit="handlePlanRoute(event)">
@@ -1103,14 +1110,13 @@
     <!-- Real-Time Driving Navigation Launch Controls -->
     <div class="drive-launch-card">
       <button type="button" class="btn-start-driving" onclick="startDrivingMode()">
-        <span class="drive-icon">🚗</span>
         <div class="drive-btn-text">
           <span class="drive-btn-title">Start Real-Time Driving Mode</span>
           <span class="drive-btn-sub">Live GPS turn HUD, screen wake lock &amp; camera follow</span>
         </div>
       </button>
       <button type="button" class="btn-simulate-drive" id="btn-sim-drive" onclick="toggleSimulatedDrive()" title="Test drive along route without physical driving">
-        <span id="sim-btn-icon">▶</span> <span id="sim-btn-text">Simulate Driving on Route</span>
+        <span id="sim-btn-text">Simulate Driving on Route</span>
       </button>
     </div>
     <div class="stats-grid">
@@ -1831,7 +1837,7 @@
   async function computeOptimalEVStops(startLoc, endLoc, totalRange, currentRange) {
     // 1. Fetch initial direct driving route geometry from Mapbox
     setStatus('Analyzing highway corridor & elevation from Mapbox...');
-    const baseDirUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${startLoc.lon},${startLoc.lat};${endLoc.lon},${endLoc.lat}?overview=full&geometries=geojson&access_token=${accessToken}`;
+    const baseDirUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${startLoc.lon},${startLoc.lat};${endLoc.lon},${endLoc.lat}?overview=full&steps=true&geometries=geojson&access_token=${accessToken}`;
     const baseDirRes = await fetch(baseDirUrl);
     if (!baseDirRes.ok) throw new Error('Could not calculate baseline route');
     const baseDirData = await baseDirRes.json();
@@ -2041,119 +2047,150 @@
 
       // 4. Fetch Complete Driving Route via Mapbox Directions
       setStatus('Generating detailed turn-by-turn driving directions...');
-      const multiRouteUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${waypointsCoords}?steps=true&geometries=geojson&overview=full&access_token=${accessToken}`;
-      const multiRouteRes = await fetch(multiRouteUrl);
-      if (!multiRouteRes.ok) throw new Error('Could not fetch final driving directions.');
-      const multiRouteData = await multiRouteRes.json();
+      let finalRoute = null;
 
-      if (multiRouteData.routes && multiRouteData.routes.length > 0) {
-        const finalRoute = multiRouteData.routes[0];
-        activeRouteData = finalRoute;
-        activeEvPlan = evPlan;
-
-        // Draw Polyline
-        if (map.getSource('route')) {
-          map.getSource('route').setData({ type: 'Feature', geometry: finalRoute.geometry });
-        } else {
-          map.addSource('route', {
-            type: 'geojson',
-            data: { type: 'Feature', geometry: finalRoute.geometry }
-          });
-          map.addLayer({
-            id: 'route',
-            type: 'line',
-            source: 'route',
-            layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint: { 'line-color': '#0066FF', 'line-width': 5, 'line-opacity': 0.85 }
-          });
-        }
-
-        // 5. Update UI Stats & Summaries
-        const totalDriveMins = Math.round(finalRoute.duration / 60);
-        const totalDistanceMiles = (finalRoute.distance / 1609.34).toFixed(1);
-        const totalChargeMins = evPlan.chargers.reduce((sum, c) => sum + c.chargeDurationMins, 0);
-
-        document.getElementById('res-distance').textContent = `${totalDistanceMiles} mi`;
-        document.getElementById('res-drive-time').textContent = `~${totalDriveMins} min`;
-        document.getElementById('res-charge-time').textContent = totalChargeMins > 0 ? `~${totalChargeMins} min` : '0 min';
-        document.getElementById('res-stops-count').textContent = evPlan.stopsNeeded === 0 ? '0 (Direct)' : `${evPlan.stopsNeeded} Stop${evPlan.stopsNeeded > 1 ? 's' : ''}`;
-        document.getElementById('res-charge-cost').textContent = evPlan.isDirectDrive ? '$0.00 (Direct)' : evPlan.totalEstCost;
-
-        // Direct Drive Banner vs Charging Stops List
-        const directBanner = document.getElementById('direct-drive-banner');
-        const chargersSection = document.getElementById('chargers-section');
-        const chargersList = document.getElementById('chargers-list');
-        const chargersCountBadge = document.getElementById('chargers-count-badge');
-
-        if (evPlan.isDirectDrive) {
-          directBanner.style.display = 'block';
-          document.getElementById('direct-drive-desc').innerHTML = `Your current battery distance (<b>${currentRange} mi</b>) is plenty for this <b>${totalDistanceMiles} mi</b> trip.<br/>Estimated battery remaining at destination: <b>~${evPlan.arrivalMiles} mi</b> (${Math.round((evPlan.arrivalMiles / totalRange) * 100)}%).`;
-          chargersSection.style.display = 'none';
-        } else {
-          directBanner.style.display = 'none';
-          chargersSection.style.display = 'block';
-          chargersCountBadge.textContent = `${evPlan.stopsNeeded} stop${evPlan.stopsNeeded > 1 ? 's' : ''} recommended`;
-
-          let cardsHtml = '';
-          evPlan.chargers.forEach((c, idx) => {
-            const isDc = c.powerKw >= 50;
-            const badgeClass = c.powerKw >= 100 ? 'dc-fast' : (c.powerKw >= 50 ? 'fast' : '');
-            cardsHtml += `
-              <div class="charger-card">
-                <div class="charger-card-top">
-                  <div>
-                    <span style="font-size:10px; font-weight:800; color:#0066FF;">STOP #${c.stopNumber}</span>
-                    <h4 class="charger-card-title">${escapeHtml(c.title)}</h4>
-                  </div>
-                  <span class="power-badge ${badgeClass}">${c.powerKw} kW ${isDc ? 'DC Fast' : 'L2'}</span>
-                </div>
-                <div class="charger-meta"><b>Operator:</b> ${escapeHtml(c.operator)} &bull; ${escapeHtml(c.address)}</div>
-                <div class="charger-meta"><b>Plug:</b> ${escapeHtml(c.connType)}</div>
-                <div class="charger-price-row">
-                  <span class="price-rate-badge ${c.isFree ? 'free' : ''}">
-                    ⚡ Rate: ${escapeHtml(c.priceRate)}
-                  </span>
-                  <span class="price-est-text">
-                    Est. Session: <b>${escapeHtml(c.estCost)}</b> (~${c.chargeAddedKwh || 45} kWh)
-                  </span>
-                </div>
-                <div class="charger-timing">
-                  <span>~${c.chargeDurationMins} min charge (recharge to 80%)</span>
-                  <button type="button" class="btn-focus-stop" onclick="focusChargerStop(${idx})">View on Map</button>
-                </div>
-              </div>
-            `;
-          });
-          chargersList.innerHTML = cardsHtml;
-        }
-
-        // 6. Detailed Turn-by-Turn Directions by Leg
-        let stepsHtml = '';
-        finalRoute.legs.forEach((leg, legIdx) => {
-          let legLabel = '';
-          if (evPlan.isDirectDrive) {
-            legLabel = 'Direct Leg: Start to Destination';
-          } else if (legIdx === 0) {
-            legLabel = `Leg 1: Start to Charger Stop #1 (${escapeHtml(evPlan.chargers[0].title)})`;
-          } else if (legIdx < evPlan.chargers.length) {
-            legLabel = `Leg ${legIdx + 1}: Charger #${legIdx} to Charger #${legIdx + 1} (${escapeHtml(evPlan.chargers[legIdx].title)})`;
-          } else {
-            legLabel = `Final Leg ${legIdx + 1}: Charger #${evPlan.chargers.length} to Destination`;
+      // If direct drive, we already have complete driving directions from baseRoute with steps=true
+      if (evPlan.isDirectDrive && evPlan.baseRoute && evPlan.baseRoute.legs && evPlan.baseRoute.legs[0] && evPlan.baseRoute.legs[0].steps && evPlan.baseRoute.legs[0].steps.length > 0) {
+        finalRoute = evPlan.baseRoute;
+      } else {
+        try {
+          const multiRouteUrl = `https://api.mapbox.com/directions/v5/mapbox/driving/${waypointsCoords}?steps=true&geometries=geojson&overview=full&access_token=${accessToken}`;
+          const multiRouteRes = await fetch(multiRouteUrl);
+          if (multiRouteRes.ok) {
+            const multiRouteData = await multiRouteRes.json();
+            if (multiRouteData.routes && multiRouteData.routes.length > 0) {
+              finalRoute = multiRouteData.routes[0];
+            }
           }
+        } catch (fetchErr) {
+          console.warn('Multi-waypoint routing query error, attempting fallback:', fetchErr);
+        }
 
-          const legDistMi = (leg.distance / 1609.34).toFixed(1);
-          const legTimeMins = Math.round(leg.duration / 60);
-
-          stepsHtml += `<li class="leg-header">${legLabel} <span style="float:right; font-weight:normal; color:#718096;">${legDistMi} mi &bull; ~${legTimeMins}m</span></li>`;
-          leg.steps.forEach(step => {
-            stepsHtml += `<li>${step.maneuver.instruction}</li>`;
-          });
-        });
-
-        document.getElementById('directions-list').innerHTML = stepsHtml;
-        document.getElementById('results-card').style.display = 'flex';
-        setStatus('');
+        // Fallback to baseRoute if multi-waypoint query failed or timed out
+        if (!finalRoute && evPlan.baseRoute) {
+          finalRoute = evPlan.baseRoute;
+        }
       }
+
+      if (!finalRoute) {
+        throw new Error('Could not calculate driving directions. Please verify location spellings.');
+      }
+
+      activeRouteData = finalRoute;
+      activeEvPlan = evPlan;
+
+      // Draw Polyline
+      if (map.getSource('route')) {
+        map.getSource('route').setData({ type: 'Feature', geometry: finalRoute.geometry });
+      } else {
+        map.addSource('route', {
+          type: 'geojson',
+          data: { type: 'Feature', geometry: finalRoute.geometry }
+        });
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': '#0066FF', 'line-width': 5, 'line-opacity': 0.85 }
+        });
+      }
+
+      // 5. Update UI Stats & Summaries
+      const totalDriveMins = Math.round(finalRoute.duration / 60);
+      const totalDistanceMiles = (finalRoute.distance / 1609.34).toFixed(1);
+      const totalChargeMins = evPlan.chargers.reduce((sum, c) => sum + c.chargeDurationMins, 0);
+
+      document.getElementById('res-distance').textContent = `${totalDistanceMiles} mi`;
+      document.getElementById('res-drive-time').textContent = `~${totalDriveMins} min`;
+      document.getElementById('res-charge-time').textContent = totalChargeMins > 0 ? `~${totalChargeMins} min` : '0 min';
+      document.getElementById('res-stops-count').textContent = evPlan.stopsNeeded === 0 ? '0 (Direct)' : `${evPlan.stopsNeeded} Stop${evPlan.stopsNeeded > 1 ? 's' : ''}`;
+      document.getElementById('res-charge-cost').textContent = evPlan.isDirectDrive ? '$0.00 (Direct)' : evPlan.totalEstCost;
+
+      // Direct Drive Banner vs Charging Stops List
+      const directBanner = document.getElementById('direct-drive-banner');
+      const chargersSection = document.getElementById('chargers-section');
+      const chargersList = document.getElementById('chargers-list');
+      const chargersCountBadge = document.getElementById('chargers-count-badge');
+
+      if (evPlan.isDirectDrive) {
+        directBanner.style.display = 'block';
+        document.getElementById('direct-drive-desc').innerHTML = `Your current battery distance (<b>${currentRange} mi</b>) is plenty for this <b>${totalDistanceMiles} mi</b> trip.<br/>Estimated battery remaining at destination: <b>~${evPlan.arrivalMiles} mi</b> (${Math.round((evPlan.arrivalMiles / totalRange) * 100)}%).`;
+        chargersSection.style.display = 'none';
+      } else {
+        directBanner.style.display = 'none';
+        chargersSection.style.display = 'block';
+        chargersCountBadge.textContent = `${evPlan.stopsNeeded} stop${evPlan.stopsNeeded > 1 ? 's' : ''} recommended`;
+
+        let cardsHtml = '';
+        evPlan.chargers.forEach((c, idx) => {
+          const isDc = c.powerKw >= 50;
+          const badgeClass = c.powerKw >= 100 ? 'dc-fast' : (c.powerKw >= 50 ? 'fast' : '');
+          cardsHtml += `
+            <div class="charger-card">
+              <div class="charger-card-top">
+                <div>
+                  <span style="font-size:10px; font-weight:800; color:#0066FF;">STOP #${c.stopNumber}</span>
+                  <h4 class="charger-card-title">${escapeHtml(c.title)}</h4>
+                </div>
+                <span class="power-badge ${badgeClass}">${c.powerKw} kW ${isDc ? 'DC Fast' : 'L2'}</span>
+              </div>
+              <div class="charger-meta"><b>Operator:</b> ${escapeHtml(c.operator)} &bull; ${escapeHtml(c.address)}</div>
+              <div class="charger-meta"><b>Plug:</b> ${escapeHtml(c.connType)}</div>
+              <div class="charger-price-row">
+                <span class="price-rate-badge ${c.isFree ? 'free' : ''}">
+                  Rate: ${escapeHtml(c.priceRate)}
+                </span>
+                <span class="price-est-text">
+                  Est. Session: <b>${escapeHtml(c.estCost)}</b> (~${c.chargeAddedKwh || 45} kWh)
+                </span>
+              </div>
+              <div class="charger-timing">
+                <span>~${c.chargeDurationMins} min charge (recharge to 80%)</span>
+                <button type="button" class="btn-focus-stop" onclick="focusChargerStop(${idx})">View on Map</button>
+              </div>
+            </div>
+          `;
+        });
+        chargersList.innerHTML = cardsHtml;
+      }
+
+      // 6. Detailed Turn-by-Turn Directions by Leg
+      let stepsHtml = '';
+      const legs = (finalRoute.legs && finalRoute.legs.length > 0) ? finalRoute.legs : [{ distance: finalRoute.distance, duration: finalRoute.duration, steps: [] }];
+
+      legs.forEach((leg, legIdx) => {
+        let legLabel = '';
+        if (evPlan.isDirectDrive) {
+          legLabel = 'Direct Leg: Start to Destination';
+        } else if (legIdx === 0) {
+          const stopTitle = (evPlan.chargers[0] && evPlan.chargers[0].title) || 'Charging Station';
+          legLabel = `Leg 1: Start to Charger Stop #1 (${escapeHtml(stopTitle)})`;
+        } else if (legIdx < evPlan.chargers.length) {
+          const stopTitle = (evPlan.chargers[legIdx] && evPlan.chargers[legIdx].title) || 'Charging Station';
+          legLabel = `Leg ${legIdx + 1}: Charger #${legIdx} to Charger #${legIdx + 1} (${escapeHtml(stopTitle)})`;
+        } else {
+          legLabel = `Final Leg ${legIdx + 1}: Final Charger to Destination`;
+        }
+
+        const legDistMi = (leg.distance / 1609.34).toFixed(1);
+        const legTimeMins = Math.round(leg.duration / 60);
+
+        stepsHtml += `<li class="leg-header">${legLabel} <span style="float:right; font-weight:normal; color:#718096;">${legDistMi} mi &bull; ~${legTimeMins}m</span></li>`;
+        const steps = leg.steps || [];
+        if (steps.length > 0) {
+          steps.forEach(step => {
+            const instr = (step.maneuver && step.maneuver.instruction) ? step.maneuver.instruction : (step.name ? `Proceed onto ${step.name}` : 'Continue on current route');
+            stepsHtml += `<li>${escapeHtml(instr)}</li>`;
+          });
+        } else {
+          stepsHtml += `<li>Follow highway route to destination (${legDistMi} mi)</li>`;
+        }
+      });
+
+      document.getElementById('directions-list').innerHTML = stepsHtml;
+      document.getElementById('results-card').style.display = 'flex';
+      setStatus('');
     } catch (err) {
       console.error(err);
       setStatus(err.message || 'An error occurred while calculating the route. Please try again.', true);
@@ -2189,19 +2226,28 @@
   }
 
   function getManeuverIcon(type, modifier) {
-    if (type === 'arrive') return '🏁';
-    if (type === 'depart') return '🚗';
-    if (modifier === 'uturn') return '⮌';
-    if (modifier === 'sharp right') return '⮡';
-    if (modifier === 'right') return '↱';
-    if (modifier === 'slight right') return '↗';
-    if (modifier === 'sharp left') return '⮠';
-    if (modifier === 'left') return '↰';
-    if (modifier === 'slight left') return '↖';
-    if (modifier === 'straight') return '⬆';
-    if (type === 'fork') return '⑂';
-    if (type === 'roundabout') return '🔄';
-    return '➔';
+    if (type === 'arrive') {
+      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
+    }
+    if (modifier === 'uturn') {
+      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 1 1 0 8h-4"/></svg>';
+    }
+    if (modifier === 'right' || modifier === 'sharp right') {
+      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18V9a3 3 0 0 1 3-3h9"/><path d="M14 2l4 4-4 4"/></svg>';
+    }
+    if (modifier === 'slight right') {
+      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>';
+    }
+    if (modifier === 'left' || modifier === 'sharp left') {
+      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 18V9a3 3 0 0 0-3-3H6"/><path d="M10 2L6 6l4 4"/></svg>';
+    }
+    if (modifier === 'slight left') {
+      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17L7 7"/><path d="M17 7H7v10"/></svg>';
+    }
+    if (modifier === 'straight') {
+      return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>';
+    }
+    return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>';
   }
 
   function formatManeuverDistance(miles) {
@@ -2337,7 +2383,7 @@
       if (upcomingStep) {
         document.getElementById('hud-dist').textContent = formatManeuverDistance(stepManeuverDist);
         document.getElementById('hud-instruction').textContent = upcomingStep.maneuver.instruction || 'Follow route';
-        document.getElementById('hud-icon').textContent = getManeuverIcon(upcomingStep.maneuver.type, upcomingStep.maneuver.modifier);
+        document.getElementById('hud-icon').innerHTML = getManeuverIcon(upcomingStep.maneuver.type, upcomingStep.maneuver.modifier);
       }
 
       // 3. Distance to next EV charging stop
@@ -2509,7 +2555,7 @@
   function toggleCameraMode() {
     cameraMode = (cameraMode === '3d') ? '2d' : '3d';
     const btn = document.getElementById('btn-camera-view');
-    btn.textContent = cameraMode === '3d' ? '🧭' : '🗺️';
+    btn.textContent = cameraMode === '3d' ? '3D' : '2D';
     btn.title = cameraMode === '3d' ? 'Switch to 2D North-Up' : 'Switch to 3D Driving Perspective';
     recenterOnVehicle();
   }
@@ -2558,7 +2604,7 @@
       (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
-        startInput.value = '📍 Current Location';
+        startInput.value = 'Current Location';
         resolvedCoordsCache.start = {
           name: 'Current Location (GPS)',
           lat: lat,
@@ -2603,9 +2649,7 @@
 
     isSimulating = true;
     simulationIndex = 0;
-    const btnIcon = document.getElementById('sim-btn-icon');
     const btnText = document.getElementById('sim-btn-text');
-    if (btnIcon) btnIcon.textContent = '⏹';
     if (btnText) btnText.textContent = 'Stop Simulation';
 
     if (!isDrivingMode) {
@@ -2642,9 +2686,7 @@
     isSimulating = false;
     clearInterval(simulationTimer);
     simulationTimer = null;
-    const btnIcon = document.getElementById('sim-btn-icon');
     const btnText = document.getElementById('sim-btn-text');
-    if (btnIcon) btnIcon.textContent = '▶';
     if (btnText) btnText.textContent = 'Simulate Driving on Route';
   }
 
@@ -2652,14 +2694,9 @@
   function toggleMobileSidebar() {
     const sidebar = document.getElementById('sidebar');
     const isCollapsed = sidebar.classList.toggle('collapsed');
-    const icon = document.getElementById('mobile-toggle-icon');
     const text = document.getElementById('mobile-toggle-text');
-    if (isCollapsed) {
-      if (icon) icon.textContent = '☰';
-      if (text) text.textContent = 'Route Menu';
-    } else {
-      if (icon) icon.textContent = '✕';
-      if (text) text.textContent = 'Hide Menu';
+    if (text) {
+      text.textContent = isCollapsed ? 'Route Menu' : 'Hide Menu';
     }
   }
 
