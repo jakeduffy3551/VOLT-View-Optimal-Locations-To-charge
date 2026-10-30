@@ -1,7 +1,10 @@
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -1037,6 +1040,25 @@ public class API_Charge_Map {
     // MAIN ENTRYPOINT (Web Server)
     // =========================================================================
 
+    public static List<String> getLanIpAddresses() {
+        List<String> ips = new ArrayList<>();
+        try {
+            java.util.Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces != null && interfaces.hasMoreElements()) {
+                NetworkInterface iface = interfaces.nextElement();
+                if (iface.isLoopback() || !iface.isUp()) continue;
+                java.util.Enumeration<InetAddress> addresses = iface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    if (addr instanceof Inet4Address && !addr.isLoopbackAddress()) {
+                        ips.add(addr.getHostAddress());
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return ips;
+    }
+
     public static void main(String[] args) {
         // Start background Web Server
         HttpServer server = startServer(8080);
@@ -1046,9 +1068,14 @@ public class API_Charge_Map {
         System.out.println("      VOLT - View Optimal Locations To charge          ");
         System.out.println("============================================================");
         if (server != null) {
-            System.out.println("Web App is live at: http://localhost:" + port);
-            System.out.println("   Open index.html or visit http://localhost:" + port + " in your browser.");
-            System.out.println("   All route planning and charger search are now inside the HTML interface!");
+            System.out.println(" Web App is live at:");
+            System.out.println("   Computer:        http://localhost:" + port);
+            List<String> lanIps = getLanIpAddresses();
+            for (String ip : lanIps) {
+                System.out.println("   Phone on Wi-Fi:  http://" + ip + ":" + port);
+            }
+            System.out.println("   Open the URL above in your phone browser while driving.");
+            System.out.println("   Real-time GPS tracking & Driving Turn HUD are enabled!");
             System.out.println("   (Press Ctrl+C in this terminal to stop the server)");
             System.out.println("============================================================");
         }
